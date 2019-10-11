@@ -12,4 +12,4 @@ Depends:
   Matrix,
   rhdf5
 Suggests: 
-    testthat
+    testthat (>= 2.1.0)
