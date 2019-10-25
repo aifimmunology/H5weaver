@@ -4,7 +4,8 @@
 \alias{split_h5_by_hash}
 \title{Split a 10x HDF5 file based on HTOparser results}
 \usage{
-split_h5_by_hash(h5_file, hash_category_table, hash_count_matrix = NULL)
+split_h5_by_hash(h5_file, hash_category_table, hash_count_matrix = NULL,
+  add_uuid = TRUE, add_name = TRUE)
 }
 \arguments{
 \item{h5_file}{a character object specifying the location of a 10x Genomics .h5 file.}

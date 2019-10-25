@@ -1,0 +1,138 @@
+---
+title: "Split 10x Genomics scRNA-seq .h5 file based on HTOparser results"
+author: 
+ - Lucas Graybuck
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  html_document:
+    df_print: paged
+    self_contained: true
+params:
+  in_h5: NULL
+  in_mat: NULL
+  in_tbl: NULL
+  well_id: "well"
+  out_dir: NULL
+---
+
+```{r Load Libraries}
+start_time <- Sys.time()
+
+quiet_library <- function(...) {
+  suppressPackageStartupMessages(library(...))
+}
+quiet_library(rhdf5)
+quiet_library(H5weaver)
+quiet_library(Matrix)
+```
+
+Declaring start
+```{r Declare start}
+stm("Starting .h5 split")
+```
+
+Argument parsing
+```{r Parse arguments}
+if(is.null(params$in_h5)) {
+  in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
+  in_mat <- system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver")
+  in_tbl <- system.file("testdata/well1_category_table.csv.gz", package = "H5weaver")
+  well_id <- "well1"
+  out_dir <- tempdir()
+} else {
+  in_h5 <- params$in_h5
+  in_mat <- params$in_mat
+  in_tbl <- params$in_tbl
+  well_id <- params$well_id
+  out_dir <- params$out_dir
+}
+
+stm(paste0("IN  H5 file         : ", in_h5))
+stm(paste0("IN  Count matrix    : ", in_mat))
+stm(paste0("IN  Category table  : ", in_tbl))
+stm(paste0("Well ID             : ", well_id))
+stm(paste0("OUT Directory       : ", out_dir))
+```
+
+```{r Print Arguments}
+print(c(
+  paste0("IN  H5 file         : ", in_h5),
+  paste0("IN  Count matrix    : ", in_mat),
+  paste0("IN  Category table  : ", in_tbl),
+  paste0("Well ID             : ", well_id),
+  paste0("OUT Directory       : ", out_dir)
+))
+```
+
+Load HTO counts
+```{r Load Count Matrix}
+stm(paste0("Loading HTO count matrix from ", in_mat))
+hash_count_df <- fread(in_mat)
+
+hash_count_mat <- as.matrix(hash_count_df[,-1])
+
+rownames(hash_count_matrix) <- hash_count_df[[1]]
+rm(hash_count_df)
+```
+
+Load HTO categories
+```{r Load Count Matrix}
+stm(paste0("Loading HTO category table from ", in_tbl))
+hash_category_table <- fread(in_tbl)
+
+hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_category == "singlet"])
+```
+
+Display expected output files
+```{r}
+output_h5_files <- file.path(out_dir, paste0(well_id, "_", c(hto_barcodes,"multiplet"),".h5"))
+output_messages <- paste0("OUT HDF5       : ", output_h5_files)
+for(i in seq_along(output_messages)) {
+  stm(output_messages[i])
+}
+print(output_messages)
+```
+
+
+Load scRNA_seq  Dataset
+```{r Load Query}
+stm(paste0("Loading HDF5 from ", in_h5))
+h5_list <- h5dump(in_h5)
+```
+
+Split list based on hashes
+```{r}
+stm("Splitting HDF5 based on Hash Category Table")
+h5_list <- split_h5_list_by_hash(h5_list,
+                                 hash_category_table,
+                                 hash_count_matrix,
+                                 add_uuid = TRUE,
+                                 add_name = TRUE,
+                                 well_id = well_id)
+```
+
+Write HDF5 files
+```{r Write split files}
+for(i in seq_along(h5_list)) {
+  out_file <- file.path(out_dir, paste0(well_id, "_", names(h5_list)[i],".h5"))
+  stm(paste0("Writing HDF5 to", out_file))
+  write_h5_list(h5_list[[i]],
+                h5_file = out_file)
+}
+```
+
+```{r Session Info}
+sessionInfo()
+```
+
+Total time ellapsed
+```{r}
+end_time <- Sys.time()
+diff_time <- end_time - start_time
+time_message <- paste0("Ellapsed Time: ", 
+                       round(diff_time, 3),
+                       " ", units(diff_time))
+print(time_message)
+stm(time_message)
+stm("HTO count processing complete.")
+```

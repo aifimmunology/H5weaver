@@ -1,3 +1,99 @@
+#' Write an h5_list, as created by rhdf5::h5dump(), to an .h5 file
+#'
+#' @param h5_list a list object, e.g. a list created by rhdf5::h5dump()
+#' @param h5_file a character object specifying the location of a .h5 file to write to.
+#' @param h5_handle an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.
+#' @param h5_target a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.
+#'
+#' @return Writes a file; no return to R.
+#' @export
+#'
+write_h5_list <- function(h5_list,
+                          h5_file,
+                          h5_handle = NULL,
+                          h5_target = "/") {
+
+  assertthat::assert_that(is.list(h5_list))
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+
+  # Make sure the HDF5 file connection is closed if the function
+  # exits due to an error.
+  on.exit(expr = {
+    if(h5_target == "/") {
+      H5Fclose(h5_handle)
+    }
+  })
+
+  if(is.null(h5_handle)) {
+    if(file.exists(h5_file)) {
+      stop(paste(h5_file, "already exists."))
+    }
+
+
+    H5Fcreate(h5_file)
+
+    h5_handle <- H5Fopen(h5_file)
+  }
+
+  h5_names <- names(h5_list)
+  if(length(h5_names) > 0) {
+    for(h5_name in h5_names) {
+      new_object <- paste0(h5_target, h5_name)
+
+      # Correct 1d arrays to vectors for storage
+      if(class(h5_list[[h5_name]]) == "array") {
+        if(length(dim(h5_list[[h5_name]])) == 1) {
+          h5_list[[h5_name]] <- as.vector(h5_list[[h5_name]])
+        }
+      }
+
+      # Correct numeric arrays to integers if they're all whole numbers
+      if(class(h5_list[[h5_name]]) == "numeric") {
+
+        x <- as.integer(h5_list[[h5_name]])
+        if(isTRUE(all.equal(h5_list[[h5_name]], x, check.attributes = FALSE))) {
+          h5_list[[h5_name]] <- x
+        }
+      }
+
+      if(class(h5_list[[h5_name]]) == "list") {
+        h5createGroup(h5_handle,
+                      group = new_object)
+        # Recurse function to write children of list
+        write_h5_list(h5_list[[h5_name]],
+                      h5_file = h5_file,
+                      h5_handle = h5_handle,
+                      h5_target = paste0(new_object,"/"))
+      } else if(class(h5_list[[h5_name]]) == "numeric") {
+        h5write(obj = h5_list[[h5_name]],
+                file = h5_handle,
+                name = new_object)
+      } else if(class(h5_list[[h5_name]]) == "integer") {
+        bits <- choose_integer_bits(h5_list[[h5_name]])
+        h5_type <- paste0("H5T_NATIVE_UINT",bits)
+
+        h5createDataset(h5_handle,
+                        dataset = new_object,
+                        dims = list(length(h5_list[[h5_name]])),
+                        H5type = h5_type)
+
+        h5write(obj = h5_list[[h5_name]],
+                file = h5_handle,
+                name = new_object)
+
+      } else if(class(h5_list[[h5_name]]) == "character") {
+        h5write(obj = h5_list[[h5_name]],
+                file = h5_handle,
+                name = new_object)
+      }
+    }
+  }
+
+
+}
+
+
 #' Create an extensible character HDF5 dataset
 #'
 #' @param h5_handle a connection object created by H5Fopen()
@@ -108,6 +204,28 @@ append_ext_h5_character <- function(object,
 
 }
 
+#' Decide how many bits to use to store integer values in an HDF5 Dataset object.
+#'
+#' @param x a numeric vector
+#'
+#' @return an integer value. One of 16L, 32L, 64L, or NULL if larger than 64-bit.
+#' @export
+#'
+choose_integer_bits <- function(x) {
+  max_val <- max(x)
+
+  if(max_val < 2^16) {
+    16L
+  } else if(max_val < 2^32) {
+    32L
+  } else if(max_val < 2^64) {
+    64L
+  } else {
+    NULL
+  }
+
+}
+
 #' Create an extensible unsigned integer HDF5 dataset
 #'
 #' This will generate an unsigned integer dataset within an HDF5 dataset, and will either determine the appropriate bit size
@@ -141,23 +259,16 @@ create_ext_h5_uint <- function(h5_handle,
   assertthat::assert_that(length(bits) %in% c(0,1))
 
   if(!is.null(max_val) & is.null(bits)) {
-    if(max_val < 2^8) {
-      bits <- 8
-    } else if(max_val < 2^16) {
-      bits <- 16
-    } else if(max_val < 2^32) {
-      bits <- 32
-    } else if(max_val < 2^64) {
-      bits <- 64
-    }
+    bits <- choose_integer_bits(max_val)
   } else if(!is.null(bits)) {
     if(typeof(bits) == "double") {
       assertthat::assert_that(bits %in% c(8,16,32,64))
+      bits <- as.integer(bits)
     } else if(typeof(bits) == "integer") {
       assertthat::assert_that(bits %in% c(8L, 16L, 32L, 64L))
     }
   } else {
-    bits <- 32
+    bits <- 32L
   }
 
   H5type <- paste0("H5T_NATIVE_UINT",bits)

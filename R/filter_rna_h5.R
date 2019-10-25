@@ -1,3 +1,41 @@
+add_cell_ids <- function(h5_list,
+                         add_uuid = TRUE,
+                         replace_barcode = TRUE,
+                         retain_original_barcode = TRUE,
+                         add_name = TRUE) {
+  assertthat::assert_that(class(h5_list) == "list")
+  assertthat::assert_that("matrix" %in% names(h5_list))
+
+  assertthat::assert_that(is.logical(add_uuid))
+  assertthat::assert_that(is.logical(add_name))
+
+  if(add_uuid) {
+
+    if(replace_barcode) {
+      if(retain_original_barcode) {
+        h5_list$matrix$original_barcodes <- h5_list$matrix$barcode
+      }
+      h5_list$matrix$barcodes <- ids::uuid(n = length(h5_list$matrix$barcodes),
+                                           drop_hyphens = TRUE,
+                                           use_time = TRUE)
+    } else {
+      h5_list$matrix$cell_uuid <- ids::uuid(n = length(h5_list$matrix$barcodes),
+                                            drop_hyphens = TRUE,
+                                            use_time = TRUE)
+    }
+
+  }
+
+  if(add_name) {
+    h5_list$matrix$cell_name <- ids::adjective_animal(n = length(h5_list$matrix$barcodes),
+                                                      n_adjectives = 2,
+                                                      max_len = 10)
+  }
+
+  h5_list
+
+}
+
 #' Split a 10x HDF5 file based on HTOparser results
 #'
 #' @param h5_file a character object specifying the location of a 10x Genomics .h5 file.
@@ -7,14 +45,16 @@
 #' @return A list object with contents of the input h5_file separated by each hto_barcode. Also includes multiplets.
 #' @export
 #'
-split_h5_by_hash <- function(h5_file,
+split_h5_list_by_hash <- function(h5_list,
                              hash_category_table,
-                             hash_count_matrix = NULL) {
+                             hash_count_matrix = NULL,
+                             add_uuid = TRUE,
+                             add_name = TRUE,
+                             well_id = NULL) {
 
-  assertthat::assert_that(class(h5_file) == "character")
-  assertthat::assert_that(length(h5_file) == 1)
+  assertthat::assert_that(class(h5_file) == "list")
 
-  assertthat::assert_that(class(hash_category_table) %in% c("data.frame","data.table"))
+  assertthat::assert_that(sum(class(hash_category_table) %in% c("data.frame","data.table")) > 0)
 
   if(!file.exists(h5_file)) {
     stop(paste(h5_file, "does not exist."))
@@ -24,10 +64,32 @@ split_h5_by_hash <- function(h5_file,
     assertthat::assert_that(class(hash_count_matrix) %in% c("dgCMatrix","matrix"))
   }
 
-  h5_list <- rhdf5::h5dump(h5_file)
+  assertthat::assert_that(is.logical(add_uuid))
+  assertthat::assert_that(is.logical(add_name))
 
-  h5_list$matrix$barcodes <- sub("-.+","",h5_list$matrix$barcodes)
-  common_barcodes <- intersect(h5_list$matrix$barcodes, hash_category_table$cell_barcode)
+  if(add_uuid) {
+    h5_list <- add_cell_ids(h5_list,
+                            add_uuid = TRUE,
+                            replace_barcode = TRUE,
+                            retain_original_barcode = TRUE,
+                            add_name = FALSE)
+  }
+
+  if(add_name) {
+    h5_list <- add_cell_ids(h5_list,
+                            add_uuid = FALSE,
+                            add_name = TRUE)
+  }
+
+  if(!is.null(well_id)) {
+    assertthat::assert_that(is.character(well_id))
+    assertthat::assert_that(length(well_id) == 1)
+
+    h5_list$matrix$well_id <- rep(well_id, length(h5_list$matrix$barcodes))
+  }
+
+  h5_list$matrix$original_barcodes <- sub("-.+","",h5_list$matrix$original_barcodes)
+  common_barcodes <- intersect(h5_list$matrix$original_barcodes, hash_category_table$cell_barcode)
 
   common_hash_table <- hash_category_table[hash_category_table$cell_barcode %in% common_barcodes,]
 
@@ -43,13 +105,16 @@ split_h5_by_hash <- function(h5_file,
     hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == hto_barcode,]
 
     split_h5_list[[hto_barcode]] <- subset_h5_list_by_barcodes(h5_list,
-                                                               hto_hash_table$cell_barcode)
+                                                               hto_hash_table$cell_barcode,
+                                                               original_barcodes = TRUE)
 
     split_h5_list[[hto_barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[hto_barcode]])
 
     if(!is.null(hash_count_matrix)) {
       hto_hash_matrix <- hash_count_matrix[, hto_hash_table$cell_barcode]
       hto_hash_matrix <- as(hto_hash_matrix, "dgCMatrix")
+      colnames(hto_hash_matrix) <- split_h5_list[[hto_barcode]]$matrix$barcode[match(colnames(hto_hash_matrix),
+                                                                                     split_h5_list[[hto_barcode]]$matrix$original_barcode)]
 
       split_h5_list[[hto_barcode]] <- h5_list_add_dgCMatrix(split_h5_list[[hto_barcode]],
                                                             mat = hto_hash_matrix,
@@ -59,11 +124,14 @@ split_h5_by_hash <- function(h5_file,
   }
 
   split_h5_list$multiplet <- subset_h5_list_by_barcodes(h5_list,
-                                                           multiplet_hash_table$cell_barcode)
+                                                        multiplet_hash_table$cell_barcode,
+                                                        original_barcodes = TRUE)
   split_h5_list$multiplet <- h5_list_convert_from_dgCMatrix(split_h5_list$multiplet)
   if(!is.null(hash_count_matrix)) {
     multiplet_hash_matrix <- hash_count_matrix[, multiplet_hash_table$cell_barcode]
     multiplet_hash_matrix <- as(multiplet_hash_matrix, "dgCMatrix")
+    colnames(multiplet_hash_matrix) <- split_h5_list$multiplet$matrix$barcode[match(colnames(multiplet_hash_matrix),
+                                                                                    split_h5_list$multiplet$matrix$original_barcode)]
 
     split_h5_list$multiplet <- h5_list_add_dgCMatrix(split_h5_list$multiplet,
                                                      mat = multiplet_hash_matrix,
@@ -77,22 +145,31 @@ split_h5_by_hash <- function(h5_file,
 #'
 #' @param h5_list a list object generated by running rhdf5::h5dump() on a 10x HDF5 file, with a matrix converted by h5_list_convert_to_dgCMatrix().
 #' @param barcodes a set of barcodes to select for filtering
+#' @param original_barcodes a logical indicating if the original_barcodes object should be used instead of barcodes (in case uuids have replaced original barcodes)
 #'
 #' @return a list object
 #' @export
 #'
 subset_h5_list_by_barcodes <- function(h5_list,
-                                       barcodes) {
+                                       barcodes,
+                                       original_barcodes = FALSE) {
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("matrix" %in% names(h5_list))
   assertthat::assert_that("h5_dgCMatrix" %in% names(h5_list))
 
-  keep <- match(barcodes, colnames(h5_list$h5_dgCMatrix))
+  if(original_barcodes) {
+    keep <- match(barcodes, h5_list$matrix$original_barcodes)
+  } else {
+    keep <- match(barcodes, colnames(h5_list$h5_dgCMatrix))
+  }
+
   h5_list$h5_dgCMatrix <- h5_list$h5_dgCMatrix[, keep]
 
-  h5_list$matrix$features$feature_type <- h5_list$matrix$features$feature_type[keep]
-  h5_list$matrix$features$genome <- h5_list$matrix$features$genome[keep]
-  h5_list$matrix$features$name <- h5_list$matrix$features$name[keep]
+  additional_cell_values <- names(h5_list$matrix)[names(h5_list$matrix) != "features"]
+
+  for(additional_value in additional_cell_values) {
+    h5_list$matrix[[additional_value]] <- h5_list$matrix[[additional_value]][keep]
+  }
 
   h5_list
 }
@@ -174,8 +251,8 @@ h5_list_add_dgCMatrix <- function(h5_list,
   h5_list[[target]]$indices <- mat@i
   h5_list[[target]]$indptr <- mat@p
   h5_list[[target]]$shape <- dim(mat)
-  h5_list[[target]]$colnames <- colnames(mat)
-  h5_list[[target]]$rownames <- rownames(mat)
+  h5_list[[target]]$barcodes <- colnames(mat)
+  h5_list[[target]]$features <- list(id = rownames(mat))
 
   h5_list
 }
