@@ -9,7 +9,9 @@ License: Allen Institute Software License
 Encoding: UTF-8
 LazyData: true
 Depends:
+  data.table,
   Matrix,
   rhdf5
 Suggests: 
     testthat (>= 2.1.0)
+RoxygenNote: 6.1.1
