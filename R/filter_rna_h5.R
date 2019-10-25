@@ -52,13 +52,9 @@ split_h5_list_by_hash <- function(h5_list,
                              add_name = TRUE,
                              well_id = NULL) {
 
-  assertthat::assert_that(class(h5_file) == "list")
+  assertthat::assert_that(class(h5_list) == "list")
 
   assertthat::assert_that(sum(class(hash_category_table) %in% c("data.frame","data.table")) > 0)
-
-  if(!file.exists(h5_file)) {
-    stop(paste(h5_file, "does not exist."))
-  }
 
   if(!is.null(hash_count_matrix)) {
     assertthat::assert_that(class(hash_count_matrix) %in% c("dgCMatrix","matrix"))
@@ -101,24 +97,24 @@ split_h5_list_by_hash <- function(h5_list,
   h5_list <- h5_list_convert_to_dgCMatrix(h5_list)
 
   split_h5_list <- list()
-  for(hto_barcode in hto_barcodes) {
-    hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == hto_barcode,]
+  for(barcode in hto_barcodes) {
+    hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == barcode,]
 
-    split_h5_list[[hto_barcode]] <- subset_h5_list_by_barcodes(h5_list,
+    split_h5_list[[barcode]] <- subset_h5_list_by_barcodes(h5_list,
                                                                hto_hash_table$cell_barcode,
                                                                original_barcodes = TRUE)
 
-    split_h5_list[[hto_barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[hto_barcode]])
+    split_h5_list[[barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[barcode]])
 
     if(!is.null(hash_count_matrix)) {
       hto_hash_matrix <- hash_count_matrix[, hto_hash_table$cell_barcode]
       hto_hash_matrix <- as(hto_hash_matrix, "dgCMatrix")
-      colnames(hto_hash_matrix) <- split_h5_list[[hto_barcode]]$matrix$barcode[match(colnames(hto_hash_matrix),
-                                                                                     split_h5_list[[hto_barcode]]$matrix$original_barcode)]
+      colnames(hto_hash_matrix) <- split_h5_list[[barcode]]$matrix$barcode[match(colnames(hto_hash_matrix),
+                                                                                 split_h5_list[[barcode]]$matrix$original_barcode)]
 
-      split_h5_list[[hto_barcode]] <- h5_list_add_dgCMatrix(split_h5_list[[hto_barcode]],
-                                                            mat = hto_hash_matrix,
-                                                            target = "hash_count_matrix")
+      split_h5_list[[barcode]] <- h5_list_add_dgCMatrix(split_h5_list[[barcode]],
+                                                        mat = hto_hash_matrix,
+                                                        target = "hash_count_matrix")
     }
 
   }

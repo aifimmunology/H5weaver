@@ -71,7 +71,7 @@ hash_count_df <- fread(in_mat)
 
 hash_count_mat <- as.matrix(hash_count_df[,-1])
 
-rownames(hash_count_matrix) <- hash_count_df[[1]]
+rownames(hash_count_mat) <- hash_count_df[[1]]
 rm(hash_count_df)
 ```
 
@@ -105,7 +105,7 @@ Split list based on hashes
 stm("Splitting HDF5 based on Hash Category Table")
 h5_list <- split_h5_list_by_hash(h5_list,
                                  hash_category_table,
-                                 hash_count_matrix,
+                                 hash_count_mat,
                                  add_uuid = TRUE,
                                  add_name = TRUE,
                                  well_id = well_id)
@@ -115,9 +115,10 @@ Write HDF5 files
 ```{r Write split files}
 for(i in seq_along(h5_list)) {
   out_file <- file.path(out_dir, paste0(well_id, "_", names(h5_list)[i],".h5"))
-  stm(paste0("Writing HDF5 to", out_file))
+  stm(paste0("Writing HDF5 to ", out_file))
   write_h5_list(h5_list[[i]],
                 h5_file = out_file)
+  h5closeAll()
 }
 ```
 
