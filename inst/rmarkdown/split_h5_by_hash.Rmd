@@ -76,7 +76,7 @@ rm(hash_count_df)
 ```
 
 Load HTO categories
-```{r Load Count Matrix}
+```{r Load Category Table}
 stm(paste0("Loading HTO category table from ", in_tbl))
 hash_category_table <- fread(in_tbl)
 
@@ -84,7 +84,7 @@ hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_c
 ```
 
 Display expected output files
-```{r}
+```{r Display Outputs}
 output_h5_files <- file.path(out_dir, paste0(well_id, "_", c(hto_barcodes,"multiplet"),".h5"))
 output_messages <- paste0("OUT HDF5       : ", output_h5_files)
 for(i in seq_along(output_messages)) {
@@ -101,7 +101,7 @@ h5_list <- h5dump(in_h5)
 ```
 
 Split list based on hashes
-```{r}
+```{r Split H5 Lists}
 stm("Splitting HDF5 based on Hash Category Table")
 h5_list <- split_h5_list_by_hash(h5_list,
                                  hash_category_table,
@@ -127,7 +127,7 @@ sessionInfo()
 ```
 
 Total time ellapsed
-```{r}
+```{r Show Time}
 end_time <- Sys.time()
 diff_time <- end_time - start_time
 time_message <- paste0("Ellapsed Time: ", 
