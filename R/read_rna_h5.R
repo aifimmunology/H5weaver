@@ -46,8 +46,8 @@ read_h5_dgCMatrix <- function(h5_file,
                       p = h5read(h5_handle, "/matrix/indptr"),
                       index1 = FALSE,
                       dims = h5read(h5_handle, "/matrix/shape"),
-                      dimnames = list(h5read(h5_handle, paste0("/matrix/features/", feature_names)),
-                                      h5read(h5_handle, paste0("/matrix/barcodes"))
+                      dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
+                                      as.vector(h5read(h5_handle, paste0("/matrix/barcodes")))
                                       )
                       )
 
@@ -65,7 +65,9 @@ read_h5_dgCMatrix <- function(h5_file,
 #'
 h5ls <- function(...) {
   df <- rhdf5::h5ls(...)
+
   df$full_name <- paste0(df$group, "/" ,df$name)
+  df$full_name <- sub("//","/",df$full_name)
 
   df <- df[,c("full_name","group","name","otype","dclass","dim")]
 
