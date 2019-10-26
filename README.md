@@ -24,7 +24,7 @@ if(!"BiocManager" %in% .packages(all.available = TRUE)) {
 BiocManager::install("rhdf5")
 ```
 
-`H5weaver` also requires the `Matrix` package, which is available on CRAN and should be automatically installed by `install_github()`.
+`H5weaver` also requires the `data.table`, `ids`, and `Matrix` packages, which are available on CRAN and should be automatically installed by `install_github()`.
 
 # Installation
 
