@@ -327,11 +327,11 @@ reduce_h5_list <- function(h5_ll,
   }
 
   for(i in seq_along(sparse_matrices)) {
-    out_list <- h5_list_convert_from_dgCMatrix(out_list,
-                                               target = sparse_matrices[i])
-
     # Exception here for "features", which shouldn't be concatenated.
     out_list[[sparse_matrices[i]]]$features <- h5_ll[[1]][[sparse_matrices[i]]]$features
+
+    out_list <- h5_list_convert_from_dgCMatrix(out_list,
+                                               target = sparse_matrices[i])
   }
 
   out_list
