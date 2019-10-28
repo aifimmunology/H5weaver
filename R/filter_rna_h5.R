@@ -56,23 +56,26 @@ add_cell_ids <- function(h5_list,
 #' @return a list object
 #' @export
 #'
-h5_list_convert_to_dgCMatrix <- function(h5_list) {
-  assertthat::assert_that(class(h5_list) == "list")
-  assertthat::assert_that("matrix" %in% names(h5_list))
+h5_list_convert_to_dgCMatrix <- function(h5_list,
+                                         target = "matrix") {
 
-  h5_list[["h5_dgCMatrix"]] <- Matrix::sparseMatrix(x = h5_list$matrix$data,
-                                                    i = h5_list$matrix$indices,
-                                                    index1 = FALSE,
-                                                    p = h5_list$matrix$indptr,
-                                                    dims = h5_list$matrix$shape,
-                                                    dimnames = list(h5_list$matrix$features$id,
-                                                                    h5_list$matrix$barcodes))
-  h5_list$matrix$data <- NULL
-  h5_list$matrix$indices <- NULL
-  h5_list$matrix$indptr <- NULL
-  h5_list$matrix$shape <- NULL
-  h5_list$matrix$features$id <- NULL
-  h5_list$matrix$barcodes <- NULL
+  assertthat::assert_that(class(h5_list) == "list")
+  assertthat::assert_that(target %in% names(h5_list))
+  target_dgCMatrix <- paste0(target,"_dgCMatrix")
+
+  h5_list[[target_dgCMatrix]] <- Matrix::sparseMatrix(x = h5_list[[target]]$data,
+                                                      i = h5_list[[target]]$indices,
+                                                      index1 = FALSE,
+                                                      p = h5_list[[target]]$indptr,
+                                                      dims = h5_list[[target]]$shape,
+                                                      dimnames = list(h5_list[[target]]$features$id,
+                                                                      h5_list[[target]]$barcodes))
+  h5_list[[target]]$data <- NULL
+  h5_list[[target]]$indices <- NULL
+  h5_list[[target]]$indptr <- NULL
+  h5_list[[target]]$shape <- NULL
+  h5_list[[target]]$features$id <- NULL
+  h5_list[[target]]$barcodes <- NULL
 
   h5_list
 }
@@ -86,20 +89,22 @@ h5_list_convert_to_dgCMatrix <- function(h5_list) {
 #' @return a list object
 #' @export
 #'
-h5_list_convert_from_dgCMatrix <- function(h5_list) {
+h5_list_convert_from_dgCMatrix <- function(h5_list,
+                                           target = "matrix") {
 
   assertthat::assert_that(class(h5_list) == "list")
-  assertthat::assert_that("matrix" %in% names(h5_list))
-  assertthat::assert_that("h5_dgCMatrix" %in% names(h5_list))
 
-  h5_list$matrix$data <- h5_list$h5_dgCMatrix@x
-  h5_list$matrix$indices <- h5_list$h5_dgCMatrix@i
-  h5_list$matrix$indptr <- h5_list$h5_dgCMatrix@p
-  h5_list$matrix$shape <- dim(h5_list$h5_dgCMatrix)
-  h5_list$matrix$barcodes <- colnames(h5_list$h5_dgCMatrix)
-  h5_list$matrix$features$id <- rownames(h5_list$h5_dgCMatrix)
+  target_dgCMatrix <- paste0(target,"_dgCMatrix")
+  assertthat::assert_that(target_dgCMatrix %in% names(h5_list))
 
-  h5_list$h5_dgCMatrix <- NULL
+  h5_list[[target]]$data <- h5_list[[target_dgCMatrix]]@x
+  h5_list[[target]]$indices <- h5_list[[target_dgCMatrix]]@i
+  h5_list[[target]]$indptr <- h5_list[[target_dgCMatrix]]@p
+  h5_list[[target]]$shape <- dim(h5_list[[target_dgCMatrix]])
+  h5_list[[target]]$barcodes <- colnames(h5_list[[target_dgCMatrix]])
+  h5_list[[target]]$features$id <- rownames(h5_list[[target_dgCMatrix]])
+
+  h5_list[[target_dgCMatrix]] <- NULL
 
   h5_list
 }
@@ -263,4 +268,9 @@ split_h5_list_by_hash <- function(h5_list,
   }
 
   split_h5_list
+}
+
+
+reduce_h5_list <- function(x) {
+
 }
