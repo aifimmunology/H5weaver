@@ -76,8 +76,8 @@ write_h5_list <- function(h5_list,
         h5createDataset(h5_handle,
                         dataset = new_object,
                         dims = list(length(h5_list[[h5_name]])),
-                        H5type = h5_type,
-                        chunk = choose_chunk_size(h5_list[[h5_name]]))
+                        chunk = choose_chunk_size(h5_list[[h5_name]]),
+                        H5type = h5_type)
 
         h5write(obj = h5_list[[h5_name]],
                 file = h5_handle,
