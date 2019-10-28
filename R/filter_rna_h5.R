@@ -286,7 +286,7 @@ cat_h5_list <- function (x, y) {
 
   assertthat::assert_that(is.list(x))
   assertthat::assert_that(is.list(y))
-  assertthat::assert_that(sum(names(x) == names(y)) == length(names(x)))
+  assertthat::assert_that(all(names(x) == names(y)))
 
   for (v in seq_along(x)) {
 
@@ -314,6 +314,9 @@ cat_h5_list <- function (x, y) {
 #'
 reduce_h5_list <- function(h5_ll,
                            sparse_matrices = c("matrix")) {
+
+  assertthat::assert_that(is.list(h5_ll))
+  assertthat::assert_that(all(sparse_matrices %in% names(h5_ll[[1]])))
 
   for(i in seq_along(sparse_matrices)) {
     h5_ll <- lapply(h5_ll,
