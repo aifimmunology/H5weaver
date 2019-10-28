@@ -76,7 +76,8 @@ write_h5_list <- function(h5_list,
         h5createDataset(h5_handle,
                         dataset = new_object,
                         dims = list(length(h5_list[[h5_name]])),
-                        H5type = h5_type)
+                        H5type = h5_type,
+                        chunk = choose_chunk_size(h5_list[[h5_name]]))
 
         h5write(obj = h5_list[[h5_name]],
                 file = h5_handle,
@@ -224,6 +225,26 @@ choose_integer_bits <- function(x) {
     NULL
   }
 
+}
+
+#' Select a reasonable chunk size for an HDF5 dataset object
+#'
+#' @param x A vector to store in an HDF5 file
+#'
+#' @return a numeric value containing a suggested chunk size
+#' @export
+#'
+choose_chunk_size <- function(x) {
+  x_len <- length(x)
+  x_logs <- floor(log10(x_len))
+
+  if(x_logs > 6) {
+    10^5
+  } else if (x_logs > 2) {
+    10^(x_logs - 1)
+  } else {
+    length(x)
+  }
 }
 
 #' Create an extensible unsigned integer HDF5 dataset
