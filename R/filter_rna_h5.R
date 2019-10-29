@@ -157,6 +157,7 @@ h5_list_add_dgCMatrix <- function(h5_list,
 subset_h5_list_by_barcodes <- function(h5_list,
                                        barcodes,
                                        original_barcodes = FALSE) {
+
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("matrix" %in% names(h5_list))
   assertthat::assert_that("matrix_dgCMatrix" %in% names(h5_list))
@@ -173,7 +174,7 @@ subset_h5_list_by_barcodes <- function(h5_list,
     additional_cell_values <- names(h5_list$matrix$observations)
 
     for(additional_value in additional_cell_values) {
-      h5_list$matrix[[additional_value]] <- h5_list$matrix[[additional_value]][keep]
+      h5_list$matrix$observations[[additional_value]] <- h5_list$matrix$observations[[additional_value]][keep]
     }
   }
 
