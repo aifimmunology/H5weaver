@@ -159,15 +159,15 @@ subset_h5_list_by_barcodes <- function(h5_list,
                                        original_barcodes = FALSE) {
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("matrix" %in% names(h5_list))
-  assertthat::assert_that("h5_dgCMatrix" %in% names(h5_list))
+  assertthat::assert_that("matrix_dgCMatrix" %in% names(h5_list))
 
   if(original_barcodes) {
     keep <- match(barcodes, h5_list$matrix$original_barcodes)
   } else {
-    keep <- match(barcodes, colnames(h5_list$h5_dgCMatrix))
+    keep <- match(barcodes, colnames(h5_list$matrix_dgCMatrix))
   }
 
-  h5_list$h5_dgCMatrix <- h5_list$h5_dgCMatrix[, keep]
+  h5_list$matrix_dgCMatrix <- h5_list$matrix_dgCMatrix[, keep]
 
   if("observations" %in% names(h5_list$matrix)) {
     additional_cell_values <- names(h5_list$matrix$observations)
