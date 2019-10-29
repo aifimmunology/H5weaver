@@ -31,7 +31,7 @@ add_cell_ids <- function(h5_list,
 
     if(replace_barcode) {
       if(retain_original_barcode) {
-        h5_list$matrix$observations$original_barcodes <- h5_list$matrix$barcode
+        h5_list$matrix$observations$original_barcodes <- h5_list$matrix$barcodes
       }
       # matrix$barcodes is used for column ids by most functions that read 10x HDF5 files.
       h5_list$matrix$barcodes <- ids::uuid(n = length(h5_list$matrix$barcodes),
