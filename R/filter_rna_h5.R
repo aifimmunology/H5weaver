@@ -162,7 +162,7 @@ subset_h5_list_by_barcodes <- function(h5_list,
   assertthat::assert_that("matrix_dgCMatrix" %in% names(h5_list))
 
   if(original_barcodes) {
-    keep <- match(barcodes, h5_list$matrix$original_barcodes)
+    keep <- match(barcodes, h5_list$matrix$observations$original_barcodes)
   } else {
     keep <- match(barcodes, colnames(h5_list$matrix_dgCMatrix))
   }
@@ -190,11 +190,11 @@ subset_h5_list_by_barcodes <- function(h5_list,
 #' @export
 #'
 split_h5_list_by_hash <- function(h5_list,
-                             hash_category_table,
-                             hash_count_matrix = NULL,
-                             add_uuid = TRUE,
-                             add_name = TRUE,
-                             well_id = NULL) {
+                                  hash_category_table,
+                                  hash_count_matrix = NULL,
+                                  add_uuid = TRUE,
+                                  add_name = TRUE,
+                                  well_id = NULL) {
 
   assertthat::assert_that(class(h5_list) == "list")
 
@@ -214,7 +214,6 @@ split_h5_list_by_hash <- function(h5_list,
                             retain_original_barcode = TRUE,
                             add_name = FALSE)
 
-
     h5_list$matrix$observations$original_barcodes <- sub("-.+","",h5_list$matrix$observations$original_barcodes)
     common_barcodes <- intersect(h5_list$matrix$observations$original_barcodes, hash_category_table$cell_barcode)
 
@@ -233,7 +232,7 @@ split_h5_list_by_hash <- function(h5_list,
     assertthat::assert_that(is.character(well_id))
     assertthat::assert_that(length(well_id) == 1)
 
-    h5_list$matrix$well_id <- rep(well_id, length(h5_list$matrix$barcodes))
+    h5_list$matrix$observations$well_id <- rep(well_id, length(h5_list$matrix$barcodes))
   }
 
   common_hash_table <- hash_category_table[hash_category_table$cell_barcode %in% common_barcodes,]
@@ -250,7 +249,7 @@ split_h5_list_by_hash <- function(h5_list,
     hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == barcode,]
 
     split_h5_list[[barcode]] <- subset_h5_list_by_barcodes(h5_list,
-                                                               hto_hash_table$cell_barcode,
+                                                           hto_hash_table$cell_barcode,
                                                            original_barcodes = TRUE)
 
     split_h5_list[[barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[barcode]])
@@ -281,7 +280,7 @@ split_h5_list_by_hash <- function(h5_list,
 
     if(add_uuid) {
       colnames(multiplet_hash_matrix) <- split_h5_list$multiplet$matrix$observations$barcode[match(colnames(multiplet_hash_matrix),
-                                                                                      split_h5_list$multiplet$matrix$observations$original_barcode)]
+                                                                                                   split_h5_list$multiplet$matrix$observations$original_barcode)]
     }
 
 
@@ -316,11 +315,11 @@ cat_h5_list <- function (x, y) {
       x[[v]] <- cat_h5_list(x[[v]], y[[v]])
     } else if(class(x[[v]]) == "dgCMatrix") {
       # If it's a dgCMatrix, perform a cbind
-        x[[v]] <- cbind(x[[v]], y[[v]])
-      } else {
+      x[[v]] <- cbind(x[[v]], y[[v]])
+    } else {
       # If it's a vector, use c to combine.
-        x[[v]] <- c(as.vector(x[[v]]), as.vector(y[[v]]))
-      }
+      x[[v]] <- c(as.vector(x[[v]]), as.vector(y[[v]]))
+    }
   }
   x
 }
