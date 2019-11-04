@@ -86,13 +86,14 @@ strip_1d_array_recursive <- function(x) {
 
   if(length(x) > 0) {
     for(n in seq_along(x)) {
-      if(class(x[[n]] == "list")) {
+      if(class(x[[n]]) == "list") {
         x[[n]] <- strip_1d_array_recursive(x[[n]])
       } else if(class(x[[n]]) == "array" & length(dim(x[[n]] == 1))) {
         x[[n]] <- as.vector(x[[n]])
       }
     }
   }
+
   x
 }
 
