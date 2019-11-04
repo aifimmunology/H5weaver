@@ -74,6 +74,45 @@ h5ls <- function(...) {
   df
 }
 
+#' Convert all 1D Arrays in a list object to vectors recursively
+#'
+#' @param x a list object
+#'
+#' @return a list object with all 1D arrays converted.
+#' @export
+#'
+strip_1d_array_recursive <- function(x) {
+  assertthat::assert_that(class(x) == "list")
+
+  if(length(x) > 0) {
+    for(n in seq_along(x)) {
+      if(class(x[[n]] == "list")) {
+        x[[n]] <- strip_1d_array_recursive(x[[n]])
+      } else if(class(x[[n]]) == "array" & length(dim(x[[n]] == 1))) {
+        x[[n]] <- as.vector(x[[n]])
+      }
+    }
+  }
+  x
+}
+
+#' Dump all objects from an HDF5 file to a list.
+#'
+#' This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors.
+#'
+#' @param ... parameters passed to rhdf5::h5dump()
+#'
+#' @return a list object with the contents of the target HDF5 file
+#' @export
+#'
+h5dump <- function(...) {
+
+  h5_list <- rhdf5::h5dump(...)
+  h5_list <- strip_1d_array_recursive(h5_list)
+
+  h5_list
+}
+
 #' Get dimensions of an object in an HDF5 file
 #'
 #' @param h5_file The path to an HDF5 file
