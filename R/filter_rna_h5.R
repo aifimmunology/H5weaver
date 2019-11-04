@@ -161,9 +161,13 @@ subset_h5_list_by_observations <- function(h5_list,
                                            sparse_matrices = "matrix") {
 
   assertthat::assert_that(class(h5_list) == "list")
+  assertthat::assert_that(is.vector(match_values))
+  assertthat::assert_that(is.character(match_target))
+  assertthat::assert_that(length(match_target) == 1)
   unconverted_matrices <- sparse_matrices[sparse_matrices %in% names(h5_list)]
   converted_matrices <- sparse_matrices[paste0(sparse_matrices, "_dgCMatrix") %in% names(h5_list)]
-  assertthat::assert_that((length(unconverted_matric) + length(converted_matrices)) > 0)
+  assertthat::assert_that((length(unconverted_matrices) + length(converted_matrices)) > 0)
+
 
   if(match_values == "barcodes") {
     assertthat::assert_that("barcodes" %in% names(h5_list$matrix))
@@ -228,7 +232,6 @@ split_h5_list_by_hash <- function(h5_list,
                                   well_id = NULL) {
 
   assertthat::assert_that(class(h5_list) == "list")
-
   assertthat::assert_that(sum(class(hash_category_table) %in% c("data.frame","data.table")) > 0)
 
   if(!is.null(hash_count_matrix)) {
@@ -238,6 +241,7 @@ split_h5_list_by_hash <- function(h5_list,
   assertthat::assert_that(is.logical(add_uuid))
   assertthat::assert_that(is.logical(add_name))
 
+  # Add UUID
   if(add_uuid) {
     h5_list <- add_cell_ids(h5_list,
                             add_uuid = TRUE,
@@ -245,20 +249,26 @@ split_h5_list_by_hash <- function(h5_list,
                             retain_original_barcode = TRUE,
                             add_name = FALSE)
 
+    # Strip -1 from the original barcodes
     h5_list$matrix$observations$original_barcodes <- sub("-.+","",h5_list$matrix$observations$original_barcodes)
+    # Find common barcodes
     common_barcodes <- intersect(h5_list$matrix$observations$original_barcodes, hash_category_table$cell_barcode)
-
+    # Specify where the barcodes are stored for filtering with subset_h5_list_by_observations()
+    barcode_target <- "original_barcodes"
   } else {
     h5_list$matrix$barcodes <- sub("-.+","",h5_list$matrix$barcodes)
     common_barcodes <- intersect(h5_list$matrix$barcodes, hash_category_table$cell_barcode)
+    barcode_target <- "barcodes"
   }
 
+  # Add cell names
   if(add_name) {
     h5_list <- add_cell_ids(h5_list,
                             add_uuid = FALSE,
                             add_name = TRUE)
   }
 
+  # Add well IDs
   if(!is.null(well_id)) {
     assertthat::assert_that(is.character(well_id))
     assertthat::assert_that(length(well_id) == 1)
@@ -266,58 +276,68 @@ split_h5_list_by_hash <- function(h5_list,
     h5_list$matrix$observations$well_id <- rep(well_id, length(h5_list$matrix$barcodes))
   }
 
+  # Filter the hash table based on common barcodes
   common_hash_table <- hash_category_table[hash_category_table$cell_barcode %in% common_barcodes,]
 
+  # Separate singlets from non-singlets
   singlet_hash_table <- common_hash_table[common_hash_table$hto_category == "singlet",]
   multiplet_hash_table <- common_hash_table[common_hash_table$hto_category != "singlet",]
 
-  hto_barcodes <- unique(as.character(singlet_hash_table$hto_barcode))
+  # Convert matrix to dgCMatrix for filtering
+  h5_list <- h5_list_convert_to_dgCMatrix(h5_list,
+                                          target = "matrix")
 
-  h5_list <- h5_list_convert_to_dgCMatrix(h5_list)
+  # Filter the h5_list based on common barcodes
+  h5_list <- subset_h5_list_by_observations(h5_list,
+                                            match_values = common_barcodes,
+                                            match_target = barcode_target,
+                                            sparse_matrices = "matrix")
 
-  split_h5_list <- list()
-  for(barcode in hto_barcodes) {
-    hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == barcode,]
-
-    split_h5_list[[barcode]] <- subset_h5_list_by_barcodes(h5_list,
-                                                           hto_hash_table$cell_barcode,
-                                                           original_barcodes = TRUE)
-
-    split_h5_list[[barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[barcode]])
-
-    if(!is.null(hash_count_matrix)) {
-      hto_hash_matrix <- hash_count_matrix[, hto_hash_table$cell_barcode]
-      hto_hash_matrix <- as(hto_hash_matrix, "dgCMatrix")
-
-      if(add_uuid) {
-        colnames(hto_hash_matrix) <- split_h5_list[[barcode]]$matrix$barcode[match(colnames(hto_hash_matrix),
-                                                                                   split_h5_list[[barcode]]$matrix$observations$original_barcode)]
-      }
-
-      split_h5_list[[barcode]] <- h5_list_add_dgCMatrix(split_h5_list[[barcode]],
-                                                        mat = hto_hash_matrix,
-                                                        target = "hash_count_matrix")
-    }
-
-  }
-
-  split_h5_list$multiplet <- subset_h5_list_by_barcodes(h5_list,
-                                                        multiplet_hash_table$cell_barcode,
-                                                        original_barcodes = TRUE)
-  split_h5_list$multiplet <- h5_list_convert_from_dgCMatrix(split_h5_list$multiplet)
-  if(!is.null(hash_count_matrix)) {
-    multiplet_hash_matrix <- hash_count_matrix[, multiplet_hash_table$cell_barcode]
-    multiplet_hash_matrix <- as(multiplet_hash_matrix, "dgCMatrix")
+  if(is.null(hash_count_matrix)) {
+    # If there's no hash count matrix, we only need to filter matrix as sparse
+    sparse_matrices <- "matrix"
+  } else {
+    # Otherwise, filter the hash count matrix for common barcodes
+    hash_count_matrix <- hash_count_matrix[, common_barcodes]
+    # Convert to sparse for storage
+    hash_count_matrix <- as(hash_count_matrix, "dgCMatrix")
 
     if(add_uuid) {
-      colnames(multiplet_hash_matrix) <- split_h5_list$multiplet$matrix$observations$barcode[match(colnames(multiplet_hash_matrix),
-                                                                                                   split_h5_list$multiplet$matrix$observations$original_barcode)]
+      # If we've converted to UUIDs, update based on the h5_list$matrix_dgCMatrix
+      colnames(hash_count_matrix) <- colnames(h5_list$matrix_dgCMatrix)
     }
 
+    # Add the hash count matrix to the h5_list
+    h5_list$hash_count_matrix <- hash_count_matrix
+    # Keep track of hash_count_matrix as sparse for filtering
+    sparse_matrices <- c("matrix","hash_count_matrix")
+  }
 
-    split_h5_list$multiplet <- h5_list_add_dgCMatrix(split_h5_list$multiplet,
-                                                     mat = multiplet_hash_matrix,
-                                                     target = "hash_count_matrix")
+  # Make a list to hold output
+  split_h5_list <- list()
+
+  # Get the set of unique barcodes (and multiplet) to use for splitting
+  hto_barcodes <- c(unique(as.character(singlet_hash_table$hto_barcode)), "multiplet")
+
+  for(barcode in hto_barcodes) {
+    # Use the multiplet table if multiplet. Otherwise, filter singlet table for hto_barcode
+    if(barcode == "multiplet") {
+      hto_hash_table <- multiplet_hash_table
+    } else {
+      hto_hash_table <- singlet_hash_table[singlet_hash_table$hto_barcode == barcode,]
+    }
+
+    # Subset the h5_list for this barcode using barcode_target and sparse_matrices, defined above in this function
+    split_h5_list[[barcode]] <- subset_h5_list_by_observations(h5_list,
+                                                               match_values = hto_hash_table$cell_barcode,
+                                                               match_target = barcode_target,
+                                                               sparse_matrices = sparse_matrices)
+
+    # Convert sparse matrices back to vectors for storage
+    for(converted in sparse_matrices) {
+      split_h5_list[[barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[barcode]],
+                                                                 target = converted)
+    }
   }
 
   split_h5_list
