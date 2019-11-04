@@ -2,7 +2,7 @@
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
-#' @param sample_names a character object specifying whether to use "barcodes" or "guids" for col.names. Default is "guid".
+#' @param sample_names a character object specifying which values to use for col.names. If "barcodes", will use /matrix/barcodes. Other values will be read from /matrix/observations/
 #'
 #' @return a dgCMatrix of gene expression values.
 #' @export
@@ -17,6 +17,9 @@ read_h5_dgCMatrix <- function(h5_file,
   assertthat::assert_that(is.character(feature_names))
   assertthat::assert_that(length(feature_names) == 1)
 
+  assertthat::assert_that(is.character(sample_names))
+  assertthat::assert_that(length(sample_names) == 1)
+
   if(!file.exists(h5_file)) {
     stop(paste(h5_file, "does not exist."))
   }
@@ -30,15 +33,12 @@ read_h5_dgCMatrix <- function(h5_file,
   feature_names <- match.arg(arg = feature_names,
                              choices = c("id","name"))
 
-  sample_names <- match.arg(arg = sample_names,
-                            choices = c("barcodes", "guids"))
-
   h5_handle <- H5Fopen(h5_file)
 
-  if(sample_names == "guids") {
-    if(!"guids" %in% h5ls(h5_handle)$name) {
-      stop(paste("guids are not available in", h5_file))
-    }
+  if(sample_names == "barcodes") {
+    colname_target <- "/matrix/barcodes"
+  } else {
+    colname_target <- paste0("/matrix/observations", sample_names)
   }
 
   mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
@@ -47,7 +47,7 @@ read_h5_dgCMatrix <- function(h5_file,
                       index1 = FALSE,
                       dims = h5read(h5_handle, "/matrix/shape"),
                       dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
-                                      as.vector(h5read(h5_handle, paste0("/matrix/barcodes")))
+                                      as.vector(h5read(h5_handle, colname_target))
                                       )
                       )
 

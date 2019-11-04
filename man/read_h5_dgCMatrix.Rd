@@ -12,7 +12,7 @@ read_h5_dgCMatrix(h5_file, feature_names = "id",
 
 \item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "id".}
 
-\item{sample_names}{a character object specifying whether to use "barcodes" or "guids" for col.names. Default is "guid".}
+\item{sample_names}{a character object specifying which values to use for col.names. If "barcodes", will use /matrix/barcodes. Other values will be read from /matrix/observations/}
 }
 \value{
 a dgCMatrix of gene expression values.
