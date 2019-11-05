@@ -37,11 +37,13 @@ add_cell_ids <- function(h5_list,
       h5_list$matrix$barcodes <- ids::uuid(n = length(h5_list$matrix$barcodes),
                                            drop_hyphens = TRUE,
                                            use_time = TRUE)
+      h5_list$matrix$observations$cell_uuid <- h5_list$matrix$barcodes
+    } else {
+      h5_list$matrix$observations$cell_uuid <- ids::uuid(n = length(h5_list$matrix$barcodes),
+                                                         drop_hyphens = TRUE,
+                                                         use_time = TRUE)
     }
 
-    h5_list$matrix$observations$cell_uuid <- ids::uuid(n = length(h5_list$matrix$barcodes),
-                                                       drop_hyphens = TRUE,
-                                                       use_time = TRUE)
   }
 
   if(add_name) {
@@ -164,15 +166,15 @@ subset_h5_list_by_observations <- function(h5_list,
   assertthat::assert_that(is.vector(match_values))
   assertthat::assert_that(is.character(match_target))
   assertthat::assert_that(length(match_target) == 1)
-  unconverted_matrices <- sparse_matrices[sparse_matrices %in% names(h5_list)]
   converted_matrices <- sparse_matrices[paste0(sparse_matrices, "_dgCMatrix") %in% names(h5_list)]
+  unconverted_matrices <- setdiff(sparse_matrices[sparse_matrices %in% names(h5_list)], converted_matrices)
   assertthat::assert_that((length(unconverted_matrices) + length(converted_matrices)) > 0)
 
 
-  if(match_values == "barcodes") {
-    assertthat::assert_that("barcodes" %in% names(h5_list$matrix))
-
+  if(match_target == "barcodes") {
     if("matrix" %in% unconverted_matrices) {
+      assertthat::assert_that("barcodes" %in% names(h5_list$matrix))
+
       keep <- match(match_values, h5_list$matrix$barcodes)
     } else if("matrix" %in% converted_matrices) {
       keep <- match(match_values, colnames(h5_list$matrix_dgCMatrix))
@@ -308,9 +310,9 @@ split_h5_list_by_hash <- function(h5_list,
     }
 
     # Add the hash count matrix to the h5_list
-    h5_list$hash_count_matrix <- hash_count_matrix
+    h5_list$hash_dgCMatrix <- hash_count_matrix
     # Keep track of hash_count_matrix as sparse for filtering
-    sparse_matrices <- c("matrix","hash_count_matrix")
+    sparse_matrices <- c("matrix","hash")
   }
 
   # Make a list to hold output
@@ -338,6 +340,9 @@ split_h5_list_by_hash <- function(h5_list,
       split_h5_list[[barcode]] <- h5_list_convert_from_dgCMatrix(split_h5_list[[barcode]],
                                                                  target = converted)
     }
+
+    split_h5_list[[barcode]]$hash$observations <- list(hash_category = hto_hash_table$hto_category)
+
   }
 
   split_h5_list
