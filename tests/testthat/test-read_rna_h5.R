@@ -38,7 +38,7 @@ test_that(
   {
     test_mat <- read_h5_dgCMatrix(test_h5,
                                   feature_names = "id",
-                                  sample_names = "barcode")
+                                  sample_names = "barcodes")
 
     expect_true(class(test_mat) == "dgCMatrix")
     expect_equal(dim(test_mat), as.vector(h5read(test_h5, "/matrix/shape")))

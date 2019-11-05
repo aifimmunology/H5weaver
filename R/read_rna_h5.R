@@ -38,7 +38,7 @@ read_h5_dgCMatrix <- function(h5_file,
   if(sample_names == "barcodes") {
     colname_target <- "/matrix/barcodes"
   } else {
-    colname_target <- paste0("/matrix/observations", sample_names)
+    colname_target <- paste0("/matrix/observations/", sample_names)
   }
 
   mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
