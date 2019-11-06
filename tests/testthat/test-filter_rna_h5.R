@@ -80,7 +80,7 @@ test_that(
 )
 
 test_that(
-  "h5_list_convert_to_dgCMatrix() needs tests",
+  "h5_list_convert_to_dgCMatrix() converts values from h5dump() to a sparse matrix",
   {
     to_mat <- h5_list_convert_to_dgCMatrix(test_h5l,
                                            target = "matrix")
@@ -100,7 +100,7 @@ test_that(
 
 
 test_that(
-  "h5_list_convert_from_dgCMatrix() needs tests",
+  "h5_list_convert_from_dgCMatrix() converts values from a sparse matrix back to the structure used by hdf5 files",
   {
     to_mat <- h5_list_convert_to_dgCMatrix(test_h5l,
                                            target = "matrix")
@@ -127,7 +127,7 @@ test_that(
 )
 
 test_that(
-  "subset_h5_list_by_observations() needs tests",
+  "subset_h5_list_by_observations() selects a subset of data in an h5_list based on a set of observation ids",
   {
     subset_barcodes <- sample(test_h5l$matrix$barcodes, 100)
 
@@ -161,7 +161,7 @@ test_that(
 )
 
 test_that(
-  "split_h5_list_by_hash() needs tests",
+  "split_h5_list_by_hash() separates an h5_list into a list of lists based on hashes in a category table",
   {
 
     unique_hto_barcodes <- unique(category_table$hto_barcode[category_table$hto_category == "singlet"])
@@ -203,7 +203,7 @@ test_that(
 )
 
 test_that(
-  "cat_h5_list() needs tests.",
+  "cat_h5_list() concatenates two h5_list structures at each point in the h5_list hierarchy",
   {
     test_split <- split_h5_list_by_hash(test_h5l,
                                         hash_category_table = category_table,
@@ -231,7 +231,7 @@ test_that(
 )
 
 test_that(
-  "reduce_h5_list() needs tests.",
+  "reduce_h5_list() converts a list of h5_list objects into a single merged h5_list",
   {
     test_split <- split_h5_list_by_hash(test_h5l,
                                         hash_category_table = category_table,
