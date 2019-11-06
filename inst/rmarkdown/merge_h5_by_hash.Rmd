@@ -8,7 +8,7 @@ output:
     df_print: paged
     self_contained: true
 params:
-  in_dir: "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/split_h5"
+  in_dir: NULL
   out_dir: NULL
 ---
 
@@ -31,7 +31,7 @@ stm("Merging .h5 files")
 Argument parsing
 ```{r Parse arguments}
 if(is.null(params$in_dir)) {
-  in_h5 <- system.file("testdata/splitdata", package = "H5weaver")
+  in_dir <- system.file("testdata/splitdata", package = "H5weaver")
   out_dir <- tempdir()
 } else {
   in_dir <- params$in_dir
@@ -84,12 +84,12 @@ stm(paste0("Identified ", length(unique_hashes), " hash patterns: ", paste(uniqu
 
 Merge files based on hashes
 ```{r Load Count Matrix}
-for(i in seq_along(unique(hashes))) {
+for(i in seq_along(unique_hashes)) {
   current_hash <- unique_hashes[i]
   stm(paste0("Merging for hash ", current_hash))
   current_files <- in_file_paths[in_file_hashes == current_hash]
   for(f in current_files) {
-    stm(paste0("IN  H5 file         : ", current_files[i]))
+    stm(paste0("IN  H5 file         : ", f))
   }
   
   h5_ll <- lapply(current_files,
@@ -99,10 +99,11 @@ for(i in seq_along(unique(hashes))) {
                             sparse_matrices = c("matrix","hash"))
   
   out_file <- file.path(out_dir, paste0(current_hash, ".h5"))
-  stm(paste0("OUT File            : ", out_file))
-  
+  stm(paste0("Writing HDF5 to     : ", out_file))
+
   write_h5_list(h5_list,
-                out_file)
+                out_file,
+                overwrite = TRUE)
 }
 ```
 

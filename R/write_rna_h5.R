@@ -44,6 +44,7 @@ choose_chunk_size <- function(x) {
 #'
 #' @param h5_list a list object, e.g. a list created by rhdf5::h5dump()
 #' @param h5_file a character object specifying the location of a .h5 file to write to.
+#' @param overwrite a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.
 #' @param h5_handle an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.
 #' @param h5_target a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.
 #'
@@ -52,6 +53,7 @@ choose_chunk_size <- function(x) {
 #'
 write_h5_list <- function(h5_list,
                           h5_file,
+                          overwrite = FALSE,
                           h5_handle = NULL,
                           h5_target = "/") {
 
@@ -68,8 +70,14 @@ write_h5_list <- function(h5_list,
   })
 
   if(is.null(h5_handle)) {
-    if(file.exists(h5_file)) {
-      stop(paste(h5_file, "already exists."))
+    if(!overwrite) {
+      if(file.exists(h5_file)) {
+        stop(paste(h5_file, "already exists."))
+      }
+    } else {
+      if(file.exists(h5_file)) {
+        file.remove(h5_file)
+      }
     }
 
     H5Fcreate(h5_file)
