@@ -53,14 +53,14 @@ file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudin
 
 dir.create("inst/testdata/splitdata/")
 
-file.copy(system.file("inst/rmarkdown/split_h5_by_hash.Rmd", package = "H5weaver"),
+file.copy(system.file("rmarkdown/split_h5_by_hash.Rmd", package = "H5weaver"),
           "./split_h5_by_hash.Rmd")
 
 rmarkdown::render(
   input = "./split_h5_by_hash.Rmd",
-  params = list(in_h5 = system.file("inst/testdata/well1.h5", package = "H5weaver"),
-                in_mat = system.file("inst/testdata/well1_count_matrix.csv.gz", package = "H5weaver"),
-                in_tbl = system.file("inst/testdata/well1_category_table.csv.gz", package = "H5weaver"),
+  params = list(in_h5 = system.file("testdata/well1.h5", package = "H5weaver"),
+                in_mat = system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver"),
+                in_tbl = system.file("testdata/well1_category_table.csv.gz", package = "H5weaver"),
                 well_id = "well1",
                 out_dir = "inst/testdata/splitdata/"),
   output_file = file.path("inst/testdata/splitdata/", "well1_split_summary.html"),
@@ -69,12 +69,13 @@ rmarkdown::render(
 
 rmarkdown::render(
   input = "./split_h5_by_hash.Rmd",
-  params = list(in_h5 = system.file("inst/testdata/well2.h5", package = "H5weaver"),
-                in_mat = system.file("inst/testdata/well2_count_matrix.csv.gz", package = "H5weaver"),
-                in_tbl = system.file("inst/testdata/well2_category_table.csv.gz", package = "H5weaver"),
+  params = list(in_h5 = system.file("testdata/well2.h5", package = "H5weaver"),
+                in_mat = system.file("testdata/well2_count_matrix.csv.gz", package = "H5weaver"),
+                in_tbl = system.file("testdata/well2_category_table.csv.gz", package = "H5weaver"),
                 well_id = "well2",
                 out_dir = "inst/testdata/splitdata/"),
   output_file = file.path("inst/testdata/splitdata/", "well2_split_summary.html"),
   quiet = TRUE
 )
 
+file.remove("./split_h5_by_hash.Rmd")
