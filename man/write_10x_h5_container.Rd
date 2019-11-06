@@ -19,6 +19,9 @@ write_10x_h5_container(h5_file, cell_barcode_length = 15,
 
 \item{indptr_bits}{32}
 }
+\value{
+
+}
 \description{
 Generate an empty HDF5 container to store RNA-seq count data in 10x format
 }

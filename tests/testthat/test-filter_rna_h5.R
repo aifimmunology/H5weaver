@@ -120,7 +120,7 @@ test_that(
 )
 
 test_that(
-  "h5_list_add_dgCMatrix() needs tests - not currently used by pipeline",
+  "h5_list_add_dgCMatrix() - not currently used by pipeline",
   {
 
   }

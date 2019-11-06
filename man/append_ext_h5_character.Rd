@@ -13,6 +13,9 @@ append_ext_h5_character(object, h5_handle, name)
 
 \item{name}{The name of the location to append to within the HDF5 file.}
 }
+\value{
+
+}
 \description{
 Append character values to an existing HDF5 string dataset
 }

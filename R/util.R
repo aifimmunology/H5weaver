@@ -11,6 +11,32 @@ stm <- function(x) {
   write(paste0("[",Sys.time(),"] ",x), stderr())
 }
 
+#' Set a list value using path-style targeting
+#'
+#' @param l a list object
+#' @param target a character object specifying the "path" to the target.
+#' @param value an object or value to insert at the target location
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' l <- list(forest = list(country = "USA",
+#'                         maple = list(height = 100)))
+#'
+#' l <- set_list_path(l,
+#'                    target = "/forest/spruce/height",
+#'                    value = 30)
+#'
+#' l <- set_list_path(l,
+#'                    target = "/forest/maple/diameter",
+#'                    value = 6)
+#'
+#' l <- set_list_path(l,
+#'                    target = "/valley/country",
+#'                    value = "Canada")
+#'
 set_list_path <- function(l,
                           target,
                           value) {
@@ -33,6 +59,28 @@ set_list_path <- function(l,
   l
 }
 
+#' Retrieve an object from a list using path-style targeting
+#'
+#' @param l a list object
+#' @param target  a character object specifying the "path" to the target.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#'
+#' l <- list(forest = list(country = "USA",
+#'                         maple = list(height = 100)))
+#'
+#' maple_height <- get_list_path(l,
+#'                               target = "/forest/maple/height")
+#'
+#' forest_list <- get_list_path(l,
+#'                              target = "/forest")
+#'
+#' forest_country <- get_list_path(l,
+#'                                 target = "/forest/country")
+#'
 get_list_path <- function(l,
                           target) {
   if(target == "/") {

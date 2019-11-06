@@ -11,7 +11,7 @@ params:
   in_h5: NULL
   in_mat: NULL
   in_tbl: NULL
-  well_id: "well"
+  well_id: NULL
   out_dir: NULL
 ---
 
