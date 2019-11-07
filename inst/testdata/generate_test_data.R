@@ -1,8 +1,8 @@
 library(rhdf5)
 library(H5weaver)
 
-well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA_CS/filtered_feature_bc_matrix.h5"
-well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA_CS/filtered_feature_bc_matrix.h5"
+well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/filtered_feature_bc_matrix.h5"
+well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/filtered_feature_bc_matrix.h5"
 
 keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
 
@@ -22,6 +22,34 @@ well1_list <- h5_list_convert_from_dgCMatrix(well1_list)
 write_h5_list(well1_list,
               "inst/testdata/well1.h5")
 h5closeAll()
+
+well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/molecule_info.h5"
+well2_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/molecule_info.h5"
+
+keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
+
+well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes"))
+
+well1_keep <- match(keep_genes, h5read(well1_mol, "/features/name")) - 1
+well1_idx <- which(h5read(well1_mol, "/feature_idx") %in% well1_keep)
+
+well1_list <- list(barcode_idx = h5read(well1_mol, "/barcode_idx")[well1_idx],
+                   barcodes = h5read(well1_mol, "/barcodes"),
+                   count = h5read(well1_mol, "/count")[well1_idx])
+
+well1_dt <- data.table(barcode_idx = well1_list$barcode_idx,
+                       barcodes = well1_list$barcodes[well1_list$barcode_idx + 1],
+                       count = well1_list$count)
+well1_dt <- well1_dt[barcodes %in% well1_keep_bc]
+
+well1_list <- list(barcode_idx = match(well1_dt$barcodes, well1_keep_bc),
+                   barcodes = well1_keep_bc,
+                   count = well1_dt$count)
+
+write_h5_list(well1_list,
+              "inst/testdata/well1_molecule_info.h5")
+h5closeAll()
+
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_category_table.csv.gz",
           "inst/testdata/well1_category_table.csv.gz")
