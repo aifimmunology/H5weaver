@@ -24,7 +24,6 @@ write_h5_list(well1_list,
 h5closeAll()
 
 well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/molecule_info.h5"
-well2_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/molecule_info.h5"
 
 keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
 
@@ -33,21 +32,22 @@ well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes")
 well1_keep <- match(keep_genes, h5read(well1_mol, "/features/name")) - 1
 well1_idx <- which(h5read(well1_mol, "/feature_idx") %in% well1_keep)
 
-well1_list <- list(barcode_idx = h5read(well1_mol, "/barcode_idx")[well1_idx],
-                   barcodes = h5read(well1_mol, "/barcodes"),
-                   count = h5read(well1_mol, "/count")[well1_idx])
+well1_list_in <- list(barcode_idx = h5read(well1_mol, "/barcode_idx")[well1_idx],
+                      barcodes = h5read(well1_mol, "/barcodes"),
+                      count = h5read(well1_mol, "/count")[well1_idx])
 
 well1_dt <- data.table(barcode_idx = well1_list$barcode_idx,
                        barcodes = well1_list$barcodes[well1_list$barcode_idx + 1],
                        count = well1_list$count)
-well1_dt <- well1_dt[barcodes %in% well1_keep_bc]
+well1_dt <- well1_dt[barcodes %in% well1_keep_bc,]
 
-well1_list <- list(barcode_idx = match(well1_dt$barcodes, well1_keep_bc),
-                   barcodes = well1_keep_bc,
-                   count = well1_dt$count)
+well1_list_out <- list(barcode_idx = match(well1_dt$barcodes, well1_keep_bc) - 1,
+                       barcodes = well1_keep_bc,
+                       count = well1_dt$count)
 
-write_h5_list(well1_list,
-              "inst/testdata/well1_molecule_info.h5")
+write_h5_list(well1_list_out,
+              "inst/testdata/well1_molecule_info.h5",
+              overwrite = TRUE)
 h5closeAll()
 
 
