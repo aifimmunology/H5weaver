@@ -9,6 +9,7 @@ output:
     self_contained: true
 params:
   in_h5: NULL
+  in_mol: NULL
   in_mat: NULL
   in_tbl: NULL
   well_id: NULL
@@ -35,12 +36,14 @@ Argument parsing
 ```{r Parse arguments}
 if(is.null(params$in_h5)) {
   in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
+  in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
   in_mat <- system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver")
   in_tbl <- system.file("testdata/well1_category_table.csv.gz", package = "H5weaver")
-  well_id <- "well1"
+  well_id <- "B000_RP0C0W0"
   out_dir <- tempdir()
 } else {
   in_h5 <- params$in_h5
+  in_mol <- params$in_mol
   in_mat <- params$in_mat
   in_tbl <- params$in_tbl
   well_id <- params$well_id
@@ -48,6 +51,7 @@ if(is.null(params$in_h5)) {
 }
 
 stm(paste0("IN  H5 file         : ", in_h5))
+stm(paste0("IN  Mol Info H5     : ", in_mol))
 stm(paste0("IN  Count matrix    : ", in_mat))
 stm(paste0("IN  Category table  : ", in_tbl))
 stm(paste0("Well ID             : ", well_id))
@@ -57,6 +61,7 @@ stm(paste0("OUT Directory       : ", out_dir))
 ```{r Print Arguments}
 print(c(
   paste0("IN  H5 file         : ", in_h5),
+  paste0("IN  Mol Info H5     : ", in_mol),
   paste0("IN  Count matrix    : ", in_mat),
   paste0("IN  Category table  : ", in_tbl),
   paste0("Well ID             : ", well_id),
@@ -86,19 +91,57 @@ hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_c
 Display expected output files
 ```{r Display Outputs}
 output_h5_files <- file.path(out_dir, paste0(well_id, "_", c(hto_barcodes,"multiplet"),".h5"))
-output_messages <- paste0("OUT HDF5       : ", output_h5_files)
+output_messages <- paste0("OUT HDF5           : ", output_h5_files)
 for(i in seq_along(output_messages)) {
   stm(output_messages[i])
 }
 print(output_messages)
 ```
 
-
 Load scRNA_seq  Dataset
 ```{r Load Query}
 stm(paste0("Loading HDF5 from ", in_h5))
 h5_list <- h5dump(in_h5)
 ```
+
+Read molecule info to get read counts per cell
+```{r Assemble Read Counts}
+stm(paste0("Assembling Read Counts per Cell from ", in_mol))
+
+bc <- sub("-1","",h5_list$matrix$barcodes)
+
+bc_counts <- data.table(mol_idx = h5read(in_mol, "/barcode_idx"),
+                        umi_count = h5read(in_mol, "/count"))
+
+bc_sums <- bc_counts[, .(n_reads = sum(umi_count)), by = mol_idx]
+rm(bc_counts)
+
+mol_bc <- h5read(in_mol, "/barcodes")
+bc_sums$cell_barcode <- mol_bc[bc_sums$mol_idx + 1]
+rm(mol_bc)
+
+bc_sums <- bc_sums[,.(cell_barcode, n_reads)]
+
+n_reads <- bc_sums$n_reads[match(bc, bc_sums$cell_barcode)]
+n_reads[is.na(n_reads)] <- 0
+
+if("observations" %in% names(h5_list$matrix)) {
+  h5_list$matrix$observations$n_reads <- n_reads
+} else {
+  h5_list$matrix$observations <- list(n_reads = n_reads)
+}
+```
+
+Compute N UMIs and N Genes per cell
+```{r n_umi and n_genes}
+stm("Computing UMI and Gene Counts per Cell")
+h5_list <- h5_list_convert_to_dgCMatrix(h5_list, target = "matrix")
+h5_list$matrix$observations$n_umis <- unname(colSums(h5_list$matrix_dgCMatrix))
+h5_list$matrix$observations$n_genes <- unname(colSums(h5_list$matrix_dgCMatrix > 0))
+
+h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "matrix")
+```
+
 
 Split list based on hashes
 ```{r Split H5 Lists}
@@ -109,6 +152,17 @@ h5_list <- split_h5_list_by_hash(h5_list,
                                  add_uuid = TRUE,
                                  add_name = TRUE,
                                  well_id = well_id)
+```
+
+Generate Chip, Pool, and Batch IDs based on well_id
+```{r Chip Pool Batch}
+h5_list <- lapply(h5_list,
+                  function(x) {
+                    x$matrix$observations$chip_id <- sub("W[0-9]+$","",x$matrix$observations$well_id)
+                    x$matrix$observations$pool_id <- sub("C[0-9]+$","",x$matrix$observations$chip_id)
+                    x$matrix$observations$batch_id <- sub("_RP[0-9]+$","",x$matrix$observations$pool_id)
+                    x
+                  })
 ```
 
 Write HDF5 files
@@ -126,11 +180,11 @@ for(i in seq_along(h5_list)) {
 sessionInfo()
 ```
 
-Total time ellapsed
+Total time elapsed
 ```{r Show Time}
 end_time <- Sys.time()
 diff_time <- end_time - start_time
-time_message <- paste0("Ellapsed Time: ", 
+time_message <- paste0("Elapsed Time: ", 
                        round(diff_time, 3),
                        " ", units(diff_time))
 print(time_message)

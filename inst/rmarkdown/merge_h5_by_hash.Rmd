@@ -111,11 +111,11 @@ for(i in seq_along(unique_hashes)) {
 sessionInfo()
 ```
 
-Total time ellapsed
+Total time elapsed
 ```{r Show Time}
 end_time <- Sys.time()
 diff_time <- end_time - start_time
-time_message <- paste0("Ellapsed Time: ", 
+time_message <- paste0("Elapsed Time: ", 
                        round(diff_time, 3),
                        " ", units(diff_time))
 print(time_message)
