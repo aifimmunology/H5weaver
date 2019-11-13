@@ -39,7 +39,7 @@ if(is.null(params$in_h5)) {
   in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
   in_mat <- system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver")
   in_tbl <- system.file("testdata/well1_category_table.csv.gz", package = "H5weaver")
-  well_id <- "well1"
+  well_id <- "B000_RP0C0W0"
   out_dir <- tempdir()
 } else {
   in_h5 <- params$in_h5
@@ -105,8 +105,10 @@ h5_list <- h5dump(in_h5)
 ```
 
 Read molecule info to get read counts per cell
-```{r}
-bc <- sub("-1","",h5read(in_h5, "/matrix/barcodes"))
+```{r Assemble Read Counts}
+stm(paste0("Assembling Read Counts per Cell from ", in_mol))
+
+bc <- sub("-1","",h5_list$matrix$barcodes)
 
 bc_counts <- data.table(mol_idx = h5read(in_mol, "/barcode_idx"),
                         umi_count = h5read(in_mol, "/count"))
@@ -120,7 +122,24 @@ rm(mol_bc)
 
 bc_sums <- bc_sums[,.(cell_barcode, n_reads)]
 
-h5_list$observations <- list(n_reads = bc_sums$n_reads[match(bc, bc_sums$cell_barcode)])
+n_reads <- bc_sums$n_reads[match(bc, bc_sums$cell_barcode)]
+n_reads[is.na(n_reads)] <- 0
+
+if("observations" %in% names(h5_list$matrix)) {
+  h5_list$matrix$observations$n_reads <- n_reads
+} else {
+  h5_list$matrix$observations <- list(n_reads = n_reads)
+}
+```
+
+Compute N UMIs and N Genes per cell
+```{r n_umi and n_genes}
+stm("Computing UMI and Gene Counts per Cell")
+h5_list <- h5_list_convert_to_dgCMatrix(h5_list, target = "matrix")
+h5_list$matrix$observations$n_umis <- unname(colSums(h5_list$matrix_dgCMatrix))
+h5_list$matrix$observations$n_genes <- unname(colSums(h5_list$matrix_dgCMatrix > 0))
+
+h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "matrix")
 ```
 
 
@@ -133,6 +152,17 @@ h5_list <- split_h5_list_by_hash(h5_list,
                                  add_uuid = TRUE,
                                  add_name = TRUE,
                                  well_id = well_id)
+```
+
+Generate Chip, Pool, and Batch IDs based on well_id
+```{r Chip Pool Batch}
+h5_list <- lapply(h5_list,
+                  function(x) {
+                    x$matrix$observations$chip_id <- sub("W[0-9]+$","",x$matrix$observations$well_id)
+                    x$matrix$observations$pool_id <- sub("C[0-9]+$","",x$matrix$observations$chip_id)
+                    x$matrix$observations$batch_id <- sub("_RP[0-9]+$","",x$matrix$observations$pool_id)
+                    x
+                  })
 ```
 
 Write HDF5 files
