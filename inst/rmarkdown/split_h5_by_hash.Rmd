@@ -91,7 +91,7 @@ hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_c
 Display expected output files
 ```{r Display Outputs}
 output_h5_files <- file.path(out_dir, paste0(well_id, "_", c(hto_barcodes,"multiplet"),".h5"))
-output_messages <- paste0("OUT HDF5       : ", output_h5_files)
+output_messages <- paste0("OUT HDF5           : ", output_h5_files)
 for(i in seq_along(output_messages)) {
   stm(output_messages[i])
 }
@@ -180,11 +180,11 @@ for(i in seq_along(h5_list)) {
 sessionInfo()
 ```
 
-Total time ellapsed
+Total time elapsed
 ```{r Show Time}
 end_time <- Sys.time()
 diff_time <- end_time - start_time
-time_message <- paste0("Ellapsed Time: ", 
+time_message <- paste0("Elapsed Time: ", 
                        round(diff_time, 3),
                        " ", units(diff_time))
 print(time_message)
