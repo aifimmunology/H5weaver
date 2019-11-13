@@ -29,12 +29,12 @@ keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM
 
 well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes"))
 
-well1_keep <- match(keep_genes, h5read(well1_mol, "/features/name")) - 1
-well1_idx <- which(h5read(well1_mol, "/feature_idx") %in% well1_keep)
+well1_feature_idx <- match(keep_genes, h5read(well1_mol, "/features/name")) - 1
+well1_idx <- which(h5read(well1_mol, "/feature_idx") %in% well1_feature_idx)
 
-well1_list_in <- list(barcode_idx = h5read(well1_mol, "/barcode_idx")[well1_idx],
-                      barcodes = h5read(well1_mol, "/barcodes"),
-                      count = h5read(well1_mol, "/count")[well1_idx])
+well1_list <- list(barcode_idx = h5read(well1_mol, "/barcode_idx")[well1_idx],
+                   barcodes = h5read(well1_mol, "/barcodes"),
+                   count = h5read(well1_mol, "/count")[well1_idx])
 
 well1_dt <- data.table(barcode_idx = well1_list$barcode_idx,
                        barcodes = well1_list$barcodes[well1_list$barcode_idx + 1],
