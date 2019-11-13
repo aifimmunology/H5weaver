@@ -12,7 +12,7 @@ params:
   in_mol: NULL
   in_mat: NULL
   in_tbl: NULL
-  well_id: NULL
+  in_well: NULL
   out_dir: NULL
 ---
 
@@ -39,14 +39,14 @@ if(is.null(params$in_h5)) {
   in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
   in_mat <- system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver")
   in_tbl <- system.file("testdata/well1_category_table.csv.gz", package = "H5weaver")
-  well_id <- "B000_RP0C0W0"
+  in_well <- "B000-P0C0W0"
   out_dir <- tempdir()
 } else {
   in_h5 <- params$in_h5
   in_mol <- params$in_mol
   in_mat <- params$in_mat
   in_tbl <- params$in_tbl
-  well_id <- params$well_id
+  in_well <- params$in_well
   out_dir <- params$out_dir
 }
 
@@ -54,7 +54,7 @@ stm(paste0("IN  H5 file         : ", in_h5))
 stm(paste0("IN  Mol Info H5     : ", in_mol))
 stm(paste0("IN  Count matrix    : ", in_mat))
 stm(paste0("IN  Category table  : ", in_tbl))
-stm(paste0("Well ID             : ", well_id))
+stm(paste0("IN  Well ID         : ", in_well))
 stm(paste0("OUT Directory       : ", out_dir))
 ```
 
@@ -64,7 +64,7 @@ print(c(
   paste0("IN  Mol Info H5     : ", in_mol),
   paste0("IN  Count matrix    : ", in_mat),
   paste0("IN  Category table  : ", in_tbl),
-  paste0("Well ID             : ", well_id),
+  paste0("IN  Well ID         : ", in_well),
   paste0("OUT Directory       : ", out_dir)
 ))
 ```
@@ -90,11 +90,16 @@ hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_c
 
 Display expected output files
 ```{r Display Outputs}
-output_h5_files <- file.path(out_dir, paste0(well_id, "_", c(hto_barcodes,"multiplet"),".h5"))
-output_messages <- paste0("OUT HDF5           : ", output_h5_files)
+output_h5_files <- file.path(out_dir, paste0(in_well, "_", 
+                                             c(hto_barcodes,"multiplet"),
+                                             ".h5"))
+
+output_messages <- paste0("OUT HDF5            : ", output_h5_files)
+
 for(i in seq_along(output_messages)) {
   stm(output_messages[i])
 }
+
 print(output_messages)
 ```
 
@@ -135,6 +140,7 @@ if("observations" %in% names(h5_list$matrix)) {
 Compute N UMIs and N Genes per cell
 ```{r n_umi and n_genes}
 stm("Computing UMI and Gene Counts per Cell")
+
 h5_list <- h5_list_convert_to_dgCMatrix(h5_list, target = "matrix")
 h5_list$matrix$observations$n_umis <- unname(colSums(h5_list$matrix_dgCMatrix))
 h5_list$matrix$observations$n_genes <- unname(colSums(h5_list$matrix_dgCMatrix > 0))
@@ -151,7 +157,7 @@ h5_list <- split_h5_list_by_hash(h5_list,
                                  hash_count_mat,
                                  add_uuid = TRUE,
                                  add_name = TRUE,
-                                 well_id = well_id)
+                                 well_id = in_well)
 ```
 
 Generate Chip, Pool, and Batch IDs based on well_id
@@ -160,7 +166,7 @@ h5_list <- lapply(h5_list,
                   function(x) {
                     x$matrix$observations$chip_id <- sub("W[0-9]+$","",x$matrix$observations$well_id)
                     x$matrix$observations$pool_id <- sub("C[0-9]+$","",x$matrix$observations$chip_id)
-                    x$matrix$observations$batch_id <- sub("_RP[0-9]+$","",x$matrix$observations$pool_id)
+                    x$matrix$observations$batch_id <- sub("-P[0-9]+$","",x$matrix$observations$pool_id)
                     x
                   })
 ```
@@ -168,7 +174,7 @@ h5_list <- lapply(h5_list,
 Write HDF5 files
 ```{r Write split files}
 for(i in seq_along(h5_list)) {
-  out_file <- file.path(out_dir, paste0(well_id, "_", names(h5_list)[i],".h5"))
+  out_file <- file.path(out_dir, paste0(in_well, "_", names(h5_list)[i],".h5"))
   stm(paste0("Writing HDF5 to ", out_file))
   write_h5_list(h5_list[[i]],
                 h5_file = out_file)
