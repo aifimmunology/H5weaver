@@ -19,7 +19,7 @@ qc_cutoff_barplot(meta, column_x = "n_umis", name_x = "N UMIs",
 \item{fill}{A character object specifying the fill color to use for for the violins. Default is "purple".}
 }
 \value{
-a ggplot2 object
+a ggplot2 plot object
 }
 \description{
 Generate a QC Barplot for a metric at multiple cutoffs

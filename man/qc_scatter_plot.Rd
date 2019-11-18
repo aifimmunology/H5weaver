@@ -29,7 +29,7 @@ qc_scatter_plot(meta, column_x = "n_reads",
 \item{color}{A character object specifying the color to use for for the points. Default is "dodgerblue".}
 }
 \value{
-a ggplot2 object
+a ggplot2 plot object
 }
 \description{
 Generate a QC Scatter Plot for a pair of metrics

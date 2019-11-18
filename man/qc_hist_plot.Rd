@@ -21,7 +21,7 @@ qc_hist_plot(meta, column = "n_reads", name_x = "N Reads per Cell",
 \item{target}{A numeric value for a target line to display on the x-axis}
 }
 \value{
-a ggplot2 object
+a ggplot2 plot object
 }
 \description{
 Generate a QC Histogram Plot for a single metric

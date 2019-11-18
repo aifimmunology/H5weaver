@@ -148,27 +148,39 @@ h5_list$matrix$observations$n_genes <- unname(colSums(h5_list$matrix_dgCMatrix >
 h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "matrix")
 ```
 
+Add cell ids
+```{r}
+stm("Adding Cell UUIDs and Names")
 
-Split list based on hashes
-```{r Split H5 Lists}
-stm("Splitting HDF5 based on Hash Category Table")
-h5_list <- split_h5_list_by_hash(h5_list,
-                                 hash_category_table,
-                                 hash_count_mat,
-                                 add_uuid = TRUE,
-                                 add_name = TRUE,
-                                 well_id = in_well)
+h5_list <-add_cell_ids(h5_list,
+                       add_uuid = TRUE,
+                       replace_barcode = TRUE,
+                       retain_original_barcode = TRUE,
+                       add_name = TRUE)
 ```
 
 Generate Chip, Pool, and Batch IDs based on well_id
 ```{r Chip Pool Batch}
-h5_list <- lapply(h5_list,
-                  function(x) {
-                    x$matrix$observations$chip_id <- sub("W[0-9]+$","",x$matrix$observations$well_id)
-                    x$matrix$observations$pool_id <- sub("C[0-9]+$","",x$matrix$observations$chip_id)
-                    x$matrix$observations$batch_id <- sub("-P[0-9]+$","",x$matrix$observations$pool_id)
-                    x
-                  })
+stm("Adding Batch, Pool, Chip, and Well metadata")
+
+h5_list <- add_well_metadata(h5_list,
+                             well_id = in_well)
+```
+
+Add hash data to the list object
+```{r Add Hash Data}
+stm("Adding hash data to cellranger results")
+
+h5_list <- add_h5_list_hash_results(h5_list,
+                                    hash_category_table,
+                                    hash_count_mat,
+                                    match_target = "original_barcodes")
+```
+
+Split list based on hashes
+```{r Split H5 Lists}
+stm("Splitting HDF5 based on Hash Category Table")
+h5_list <- split_h5_list_by_hash(h5_list)
 ```
 
 Write HDF5 files

@@ -24,7 +24,7 @@ qc_violin_plot(meta, category_x = "well_id", name_x = "Well ID",
 \item{fill}{A character object specifying the fill color to use for for the violins. Default is "skyblue".}
 }
 \value{
-a ggplot2 object
+a ggplot2 plot object
 }
 \description{
 Generate a QC Violin Plot for a metric, grouped by a categorical metadata column.

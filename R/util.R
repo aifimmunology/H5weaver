@@ -17,7 +17,7 @@ stm <- function(x) {
 #' @param target a character object specifying the "path" to the target.
 #' @param value an object or value to insert at the target location
 #'
-#' @return
+#' @return a list object
 #' @export
 #'
 #' @examples
@@ -51,8 +51,21 @@ set_list_path <- function(l,
                                           target = nest_target,
                                           value)
     } else {
-      l <- list(value)
-      names(l) <- target
+      if(length(l) == 0) {
+        l <- list(value)
+        names(l) <- target
+      } else {
+        if(target %in% names(l)) {
+          l[[target]] <- value
+        } else {
+          new_l <- list(value)
+          names(new_l) <- target
+          l <- c(l, new_l)
+        }
+
+      }
+
+
     }
   }
 
@@ -64,7 +77,7 @@ set_list_path <- function(l,
 #' @param l a list object
 #' @param target  a character object specifying the "path" to the target.
 #'
-#' @return
+#' @return a list object
 #' @export
 #'
 #' @examples
@@ -98,4 +111,28 @@ get_list_path <- function(l,
   }
 
   l
+}
+
+#' Extract a data.frame of cell metadata from an h5_list object
+#'
+#' @param h5_list an h5_list object
+#'
+#' @return a data.frame containing barcodes and all metadata stored in h5_list$matrix$observations.
+#' @export
+#'
+h5_list_cell_metadata <- function(h5_list) {
+
+  assertthat::assert_that(class(h5_list) == "list")
+  assertthat::assert_that("matrix" %in% names(h5_list))
+
+  meta <- data.frame(barcodes = h5_list$matrix$barcodes,
+                     stringsAsFactors = FALSE)
+
+  if("observations" %in% names(h5_list$matrix)) {
+    meta <- cbind(meta,
+                  as.data.frame(h5_list$matrix$observations,
+                                stringsAsFactors = FALSE))
+  }
+
+  meta
 }
