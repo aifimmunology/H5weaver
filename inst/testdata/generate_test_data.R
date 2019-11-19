@@ -4,14 +4,16 @@ library(H5weaver)
 well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/filtered_feature_bc_matrix.h5"
 well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/filtered_feature_bc_matrix.h5"
 
-keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
-
 well1_list <- h5dump(well1_h5)
 well1_list <- h5_list_convert_to_dgCMatrix(well1_list)
 
+set.seed(3030)
+keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34",
+                sample(well1_list$matrix$features$name, 90))
+
 well1_keep <- match(keep_genes, well1_list$matrix$features$name)
 
-well1_list$h5_dgCMatrix <- well1_list$h5_dgCMatrix[well1_keep,]
+well1_list$matrix_dgCMatrix <- well1_list$matrix_dgCMatrix[well1_keep,]
 
 well1_list$matrix$features$name <- well1_list$matrix$features$name[well1_keep]
 well1_list$matrix$features$genome <- well1_list$matrix$features$genome[well1_keep]
@@ -24,8 +26,6 @@ write_h5_list(well1_list,
 h5closeAll()
 
 well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/molecule_info.h5"
-
-keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
 
 well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes"))
 

@@ -25,6 +25,8 @@ quiet_library <- function(...) {
 quiet_library(rhdf5)
 quiet_library(H5weaver)
 quiet_library(Matrix)
+quiet_library(ggplot2)
+quiet_library(cowplot)
 ```
 
 Declaring start
@@ -175,6 +177,140 @@ h5_list <- add_h5_list_hash_results(h5_list,
                                     hash_category_table,
                                     hash_count_mat,
                                     match_target = "original_barcodes")
+```
+
+Extract metadata for plotting
+```{r Assemble Metadata}
+meta <- h5_list_cell_metadata(h5_list)
+```
+
+
+Plot read/umi/gene histograms
+```{r QC histograms}
+reads_plot <- qc_hist_plot(meta,
+                           column = "n_reads",
+                           name_x = "N Reads per Cell",
+                           fill = "dodgerblue",
+                           target = 2e4)
+
+umis_plot <- qc_hist_plot(meta,
+                           column = "n_umis",
+                           name_x = "N UMIs per Cell",
+                           fill = "purple",
+                           target = 8e3)
+
+genes_plot <- qc_hist_plot(meta,
+                           column = "n_genes",
+                           name_x = "N Genes per Cell",
+                           fill = "orangered",
+                           target = 2e3)
+
+histogram_list <- list(reads_plot,
+                       umis_plot,
+                       genes_plot)
+
+plot_grid(plotlist = histogram_list,
+          ncol = 1,
+          nrow = 3)
+```
+
+Plot read/umi/gene scatters
+```{r}
+qc_scatter_plot(meta,
+                column_x = "n_reads",
+                name_x = "N Reads per Cell",
+                column_y = "n_umis",
+                name_y = "N UMIs per Cell",
+                color = "darkblue")
+
+qc_scatter_plot(meta,
+                column_x = "n_umis",
+                name_x = "N UMIs per Cell",
+                column_y = "n_genes",
+                name_y = "N Genes per Cell",
+                color = "red")
+
+qc_scatter_plot(meta,
+                column_x = "n_reads",
+                name_x = "N Reads per Cell",
+                column_y = "n_genes",
+                name_y = "N Genes per Cell",
+                color = "darkgreen")
+```
+
+Read distributions by HTO category and HTO barcode
+```{r}
+category_reads_violins <- qc_violin_plot(meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_reads",
+                                         name_y = "N Reads per Cell",
+                                         fill = "dodgerblue")
+
+barcode_reads_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_reads",
+                                        name_y = "N Reads per Cell",
+                                        fill = "dodgerblue") +
+  ggtitle("Reads per Cell")
+
+reads_violin_list <- list(category_reads_violins, 
+                          barcode_reads_violins)
+
+plot_grid(plotlist = reads_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
+```
+
+UMI distributions by HTO category and HTO barcode
+```{r}
+category_umis_violins <- qc_violin_plot(meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_umis",
+                                         name_y = "N UMIs per Cell",
+                                         fill = "purple")
+
+barcode_umis_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_umis",
+                                        name_y = "N UMIs per Cell",
+                                        fill = "purple") +
+  ggtitle("UMIs per Cell")
+
+umis_violin_list <- list(category_umis_violins, 
+                          barcode_umis_violins)
+
+plot_grid(plotlist = umis_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
+```
+
+Gene distributions by HTO category and HTO barcode
+```{r}
+category_genes_violins <- qc_violin_plot(meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_genes",
+                                         name_y = "N Genes per Cell",
+                                         fill = "orangered")
+
+barcode_genes_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_genes",
+                                        name_y = "N Genes per Cell",
+                                        fill = "orangered") +
+  ggtitle("Genes per Cell")
+
+genes_violin_list <- list(category_genes_violins, 
+                          barcode_genes_violins)
+
+plot_grid(plotlist = genes_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
 ```
 
 Split list based on hashes
