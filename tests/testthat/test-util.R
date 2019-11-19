@@ -79,3 +79,33 @@ test_that(
 
   }
 )
+
+test_that(
+  "h5_list_transpose() transposes an h5_list object and swaps observations and features",
+  {
+    test_h5 <- system.file("testdata/well1.h5",
+                           package = "H5weaver")
+
+    test_h5_list1 <- h5dump(test_h5)
+
+    test_h5_list2 <- add_well_metadata(test_h5_list1,
+                                       "B000-P1C1W1")
+
+    transpose_result <- h5_list_transpose(test_h5_list2,
+                                          sparse_matrices = "matrix")
+
+    expect_true(class(transpose_result) == "list")
+    expect_identical(names(transpose_result), names(test_h5_list2))
+    expect_identical(transpose_result$features[names(transpose_result$features) != "id"],
+                     test_h5_list2$observations)
+    expect_identical(transpose_result$observations,
+                     test_h5_list2$features[names(test_h5_list2$features) != "id"])
+    expect_identical(transpose_result$features$id,
+                     test_h5_list2$barcodes)
+    expect_identical(transpose_result$barcodes,
+                     test_h5_list2$features$id)
+    expect_equal(transpose_result$matrix$shape,
+                 rev(test_h5_list2$matrix$shape))
+
+  }
+)

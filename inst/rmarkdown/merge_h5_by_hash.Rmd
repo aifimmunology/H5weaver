@@ -84,6 +84,7 @@ stm(paste0("Identified ", length(unique_hashes), " hash patterns: ", paste(uniqu
 
 Merge files based on hashes
 ```{r Load Count Matrix}
+meta_list <- list()
 for(i in seq_along(unique_hashes)) {
   current_hash <- unique_hashes[i]
   stm(paste0("Merging for hash ", current_hash))
@@ -98,13 +99,25 @@ for(i in seq_along(unique_hashes)) {
   h5_list <- reduce_h5_list(h5_ll,
                             sparse_matrices = c("matrix","hash"))
   
+  meta_list[[current_hash]] <- h5_list_cell_metadata(h5_list)
+  
   out_file <- file.path(out_dir, paste0(current_hash, ".h5"))
   stm(paste0("Writing HDF5 to     : ", out_file))
 
   write_h5_list(h5_list,
                 out_file,
                 overwrite = TRUE)
-}
+  
+  # transposed version for visualization
+  h5_list <- h5_list_transpose(h5_list,
+                               sparse_matrices = c("matrix","hash"))
+  t_out_file <- paste0("transposed_",out_file)
+  stm(paste0("Writing HDF5 to     : ", t_out_file))
+
+  write_h5_list(h5_list,
+                t_out_file,
+                overwrite = TRUE)
+} 
 ```
 
 ```{r Session Info}
