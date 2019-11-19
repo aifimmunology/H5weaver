@@ -169,11 +169,13 @@ qc_violin_plot <- function(meta,
 
   tidy_x <- rlang::parse_expr(category_x)
   tidy_y <- rlang::parse_expr(column_y)
-  q_table <- meta %>%
-    dplyr::group_by(!!tidy_x) %>%
-    dplyr::summarise(q_25 = quantile(!!tidy_y, 0.25),
-                     q_50 = quantile(!!tidy_y, 0.50),
-                     q_75 = quantile(!!tidy_y, 0.75))
+
+  meta <- as.data.table(meta)
+  q_table <- meta[, .(q_25 = quantile(get(column_y), 0.25),
+                      q_50 = quantile(get(column_y), 0.50),
+                      q_75 = quantile(get(column_y), 0.75)),
+                  by = get(category_x)]
+  names(q_table)[1] <- category_x
 
   global_median <- median(meta[[column_y]])
 

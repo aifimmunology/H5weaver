@@ -221,21 +221,24 @@ qc_scatter_plot(meta,
                 name_x = "N Reads per Cell",
                 column_y = "n_umis",
                 name_y = "N UMIs per Cell",
-                color = "darkblue")
+                color = "darkblue") +
+  ggtitle("UMIs by Reads")
 
 qc_scatter_plot(meta,
                 column_x = "n_umis",
                 name_x = "N UMIs per Cell",
                 column_y = "n_genes",
                 name_y = "N Genes per Cell",
-                color = "red")
+                color = "red") +
+  ggtitle("Genes by UMIs")
 
 qc_scatter_plot(meta,
                 column_x = "n_reads",
                 name_x = "N Reads per Cell",
                 column_y = "n_genes",
                 name_y = "N Genes per Cell",
-                color = "darkgreen")
+                color = "darkgreen") +
+  ggtitle("Genes by Reads")
 ```
 
 Read distributions by HTO category and HTO barcode

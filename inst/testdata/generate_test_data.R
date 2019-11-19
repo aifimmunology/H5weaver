@@ -8,8 +8,7 @@ well1_list <- h5dump(well1_h5)
 well1_list <- h5_list_convert_to_dgCMatrix(well1_list)
 
 set.seed(3030)
-keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34",
-                sample(well1_list$matrix$features$name, 90))
+keep_genes <- c(sample(well1_list$matrix$features$name, 1000))
 
 well1_keep <- match(keep_genes, well1_list$matrix$features$name)
 
