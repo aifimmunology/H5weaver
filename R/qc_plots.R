@@ -5,7 +5,8 @@
 #' @param name_x A character object specifying a name to display on the x-axis
 #' @param log_x A logical indicating whether or not to log10-scale the x-axis. Default is TRUE.
 #' @param fill A character object specifying the color to use for for the histogram. Default is "dodgerblue".
-#' @param target A numeric value for a target line to display on the x-axis
+#' @param target A numeric value for a target line to display on the x-axis. Default is 2e4.
+#' @param y_max A numeric value for the maximum value on the y-axis. Default is 2e3.
 #'
 #' @return a ggplot2 plot object
 #' @export
@@ -14,7 +15,8 @@ qc_hist_plot <- function(meta,
                          name_x = "N Reads per Cell",
                          log_x = TRUE,
                          fill = "dodgerblue",
-                         target = 2e4) {
+                         target = 2e4,
+                         y_max = 2e3) {
 
   if(log_x) {
     binwidth <- 0.02
@@ -46,7 +48,7 @@ qc_hist_plot <- function(meta,
                        vjust = 1) +
     ggplot2::scale_color_identity() +
     ggplot2::scale_fill_identity() +
-    ggplot2::scale_y_continuous("N Cells", limits = c(0, 1500)) +
+    ggplot2::scale_y_continuous("N Cells", limits = c(0, y_max)) +
     ggplot2::theme_bw()
 
   if(log_x) {
