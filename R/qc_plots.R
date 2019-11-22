@@ -18,6 +18,22 @@ qc_hist_plot <- function(meta,
                          target = 2e4,
                          y_max = 2e3) {
 
+
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(column) == "character")
+  assertthat::assert_that(length(column) == 1)
+  assertthat::assert_that(column %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(log_x) == "logical")
+  assertthat::assert_that(length(log_x) == 1)
+  assertthat::assert_that(class(fill) == "character")
+  assertthat::assert_that(length(fill) == 1)
+  assertthat::assert_that(class(target) == "numeric")
+  assertthat::assert_that(length(target) == 1)
+  assertthat::assert_that(class(y_max) == "numeric")
+  assertthat::assert_that(length(y_max) == 1)
+
   if(log_x) {
     binwidth <- 0.02
   } else {
@@ -89,6 +105,26 @@ qc_scatter_plot <- function(meta,
                             log_y = TRUE,
                             show_targets = TRUE,
                             color = "dodgerblue") {
+
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(column_x) == "character")
+  assertthat::assert_that(length(column_x) == 1)
+  assertthat::assert_that(column_x %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(column_y) == "character")
+  assertthat::assert_that(length(column_y) == 1)
+  assertthat::assert_that(column_y %in% names(meta))
+  assertthat::assert_that(class(name_y) == "character")
+  assertthat::assert_that(length(name_y) == 1)
+  assertthat::assert_that(class(log_x) == "logical")
+  assertthat::assert_that(length(log_x) == 1)
+  assertthat::assert_that(class(log_y) == "logical")
+  assertthat::assert_that(length(log_y) == 1)
+  assertthat::assert_that(class(show_targets) == "logical")
+  assertthat::assert_that(length(show_targets) == 1)
+  assertthat::assert_that(class(color) == "character")
+  assertthat::assert_that(length(color) == 1)
 
   target_lines <- data.frame(x = c(1e2, 2e2, 4e2, 8e2),
                              xend = c(2.5e5, 2.5e5, 2.5e5, 2.5e5),
@@ -169,6 +205,22 @@ qc_violin_plot <- function(meta,
                            log_y = TRUE,
                            fill = "skyblue") {
 
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(category_x) == "character")
+  assertthat::assert_that(length(category_x) == 1)
+  assertthat::assert_that(category_x %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(column_y) == "character")
+  assertthat::assert_that(length(column_y) == 1)
+  assertthat::assert_that(column_y %in% names(meta))
+  assertthat::assert_that(class(name_y) == "character")
+  assertthat::assert_that(length(name_y) == 1)
+  assertthat::assert_that(class(log_y) == "logical")
+  assertthat::assert_that(length(log_y) == 1)
+  assertthat::assert_that(class(fill) == "character")
+  assertthat::assert_that(length(fill) == 1)
+
   tidy_x <- rlang::parse_expr(category_x)
   tidy_y <- rlang::parse_expr(column_y)
 
@@ -236,6 +288,17 @@ qc_cutoff_barplot <- function(meta,
                               cutoffs = c(500, 750, 1000),
                               fill = "purple") {
 
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(column_x) == "character")
+  assertthat::assert_that(length(column_x) == 1)
+  assertthat::assert_that(column_x %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(cutoffs) == "numeric")
+  assertthat::assert_that(length(cutoffs) > 0)
+  assertthat::assert_that(class(fill) == "character")
+  assertthat::assert_that(length(fill) == 1)
+
   cutoff_counts <- data.frame(cutoff = cutoffs,
                               n_cells = sapply(cutoffs,
                                                function(x) {
@@ -284,7 +347,25 @@ qc_stacked_barplot <- function(meta,
                                name_y = "N Cells",
                                as_fraction = FALSE) {
 
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(category_x) == "character")
+  assertthat::assert_that(length(category_x) == 1)
+  assertthat::assert_that(category_x %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(category_y) == "character")
+  assertthat::assert_that(length(category_y) == 1)
+  assertthat::assert_that(category_y %in% names(meta))
+  assertthat::assert_that(class(category_name) == "character")
+  assertthat::assert_that(length(category_name) == 1)
+  assertthat::assert_that(class(name_y) == "character")
+  assertthat::assert_that(length(name_y) == 1)
+  assertthat::assert_that(class(colorset_y) == "character")
+  assertthat::assert_that(length(colorset_y) == 1)
   assertthat::assert_that(colorset_y %in% c("rainbow","varibow"))
+  assertthat::assert_that(class(as_fraction) == "logical")
+  assertthat::assert_that(length(as_fraction) == 1)
+
 
   meta <- as.data.table(meta)
   count_table <- meta[, .(n_cells = nrow(.SD)),
@@ -365,7 +446,26 @@ qc_aligned_barplot <- function(meta,
                                name_y = "N Cells",
                                padding = 0.2) {
 
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(category_x) == "character")
+  assertthat::assert_that(length(category_x) == 1)
+  assertthat::assert_that(category_x %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(category_y) == "character")
+  assertthat::assert_that(length(category_y) == 1)
+  assertthat::assert_that(category_y %in% names(meta))
+  assertthat::assert_that(class(category_name) == "character")
+  assertthat::assert_that(length(category_name) == 1)
+  assertthat::assert_that(class(name_y) == "character")
+  assertthat::assert_that(length(name_y) == 1)
+  assertthat::assert_that(class(colorset_y) == "character")
+  assertthat::assert_that(length(colorset_y) == 1)
   assertthat::assert_that(colorset_y %in% c("rainbow","varibow"))
+  assertthat::assert_that(class(padding) == "numeric")
+  assertthat::assert_that(length(padding) == 1)
+  assertthat::assert_that(padding < 1)
+
 
   tidy_x <- rlang::parse_expr(category_x)
   tidy_y <- rlang::parse_expr(category_y)
@@ -453,6 +553,7 @@ qc_aligned_barplot <- function(meta,
 varibow <- function(n_colors) {
 
   assertthat::assert_that(is.numeric(n_colors))
+  assertthat::assert_that(n_colors %% 1 == 0)
   assertthat::assert_that(length(n_colors) == 1)
 
   sats <- rep_len(c(0.55, 0.7, 0.85, 1), length.out = n_colors)
