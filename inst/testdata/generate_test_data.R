@@ -4,14 +4,15 @@ library(H5weaver)
 well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/filtered_feature_bc_matrix.h5"
 well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/filtered_feature_bc_matrix.h5"
 
-keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
-
 well1_list <- h5dump(well1_h5)
 well1_list <- h5_list_convert_to_dgCMatrix(well1_list)
 
+set.seed(3030)
+keep_genes <- c(sample(well1_list$matrix$features$name, 1000))
+
 well1_keep <- match(keep_genes, well1_list$matrix$features$name)
 
-well1_list$h5_dgCMatrix <- well1_list$h5_dgCMatrix[well1_keep,]
+well1_list$matrix_dgCMatrix <- well1_list$matrix_dgCMatrix[well1_keep,]
 
 well1_list$matrix$features$name <- well1_list$matrix$features$name[well1_keep]
 well1_list$matrix$features$genome <- well1_list$matrix$features$genome[well1_keep]
@@ -24,8 +25,6 @@ write_h5_list(well1_list,
 h5closeAll()
 
 well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/molecule_info.h5"
-
-keep_genes <- c("HSPA8","ERCC6","CD3E","CD27","CD68","CD14","CD4","ENTPD1","NCAM1","CD34")
 
 well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes"))
 
@@ -50,6 +49,30 @@ write_h5_list(well1_list_out,
               overwrite = TRUE)
 h5closeAll()
 
+well2_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/molecule_info.h5"
+
+well2_keep_bc <- sub("-1","",h5read("inst/testdata/well2.h5","/matrix/barcodes"))
+
+well2_feature_idx <- match(keep_genes, h5read(well2_mol, "/features/name")) - 1
+well2_idx <- which(h5read(well2_mol, "/feature_idx") %in% well2_feature_idx)
+
+well2_list <- list(barcode_idx = h5read(well2_mol, "/barcode_idx")[well2_idx],
+                   barcodes = h5read(well2_mol, "/barcodes"),
+                   count = h5read(well2_mol, "/count")[well2_idx])
+
+well2_dt <- data.table(barcode_idx = well2_list$barcode_idx,
+                       barcodes = well2_list$barcodes[well2_list$barcode_idx + 1],
+                       count = well2_list$count)
+well2_dt <- well2_dt[barcodes %in% well2_keep_bc,]
+
+well2_list_out <- list(barcode_idx = match(well2_dt$barcodes, well2_keep_bc) - 1,
+                       barcodes = well2_keep_bc,
+                       count = well2_dt$count)
+
+write_h5_list(well2_list_out,
+              "inst/testdata/well2_molecule_info.h5",
+              overwrite = TRUE)
+h5closeAll()
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_category_table.csv.gz",
           "inst/testdata/well1_category_table.csv.gz")
@@ -61,7 +84,7 @@ well2_list <- h5_list_convert_to_dgCMatrix(well2_list)
 
 well2_keep <- match(keep_genes, well2_list$matrix$features$name)
 
-well2_list$h5_dgCMatrix <- well2_list$h5_dgCMatrix[well2_keep,]
+well2_list$matrix_dgCMatrix <- well2_list$matrix_dgCMatrix[well2_keep,]
 
 well2_list$matrix$features$name <- well2_list$matrix$features$name[well2_keep]
 well2_list$matrix$features$genome <- well2_list$matrix$features$genome[well2_keep]
@@ -78,7 +101,6 @@ file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudin
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W6-01-HTO_S23/hto_count_matrix.csv.gz",
           "inst/testdata/well2_count_matrix.csv.gz")
 
-
 dir.create("inst/testdata/splitdata/")
 
 file.copy(system.file("rmarkdown/split_h5_by_hash.Rmd", package = "H5weaver"),
@@ -87,9 +109,10 @@ file.copy(system.file("rmarkdown/split_h5_by_hash.Rmd", package = "H5weaver"),
 rmarkdown::render(
   input = "./split_h5_by_hash.Rmd",
   params = list(in_h5 = system.file("testdata/well1.h5", package = "H5weaver"),
+                in_mol = system.file("testdata/well1_molecule_info.h5", package = "H5weaver"),
                 in_mat = system.file("testdata/well1_count_matrix.csv.gz", package = "H5weaver"),
                 in_tbl = system.file("testdata/well1_category_table.csv.gz", package = "H5weaver"),
-                well_id = "well1",
+                in_well = "T001-P1C1W1",
                 out_dir = "inst/testdata/splitdata/"),
   output_file = file.path("inst/testdata/splitdata/", "well1_split_summary.html"),
   quiet = TRUE
@@ -98,9 +121,10 @@ rmarkdown::render(
 rmarkdown::render(
   input = "./split_h5_by_hash.Rmd",
   params = list(in_h5 = system.file("testdata/well2.h5", package = "H5weaver"),
+                in_mol = system.file("testdata/well2_molecule_info.h5", package = "H5weaver"),
                 in_mat = system.file("testdata/well2_count_matrix.csv.gz", package = "H5weaver"),
                 in_tbl = system.file("testdata/well2_category_table.csv.gz", package = "H5weaver"),
-                well_id = "well2",
+                in_well = "T001-P1C1W2",
                 out_dir = "inst/testdata/splitdata/"),
   output_file = file.path("inst/testdata/splitdata/", "well2_split_summary.html"),
   quiet = TRUE

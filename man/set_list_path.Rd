@@ -13,6 +13,9 @@ set_list_path(l, target, value)
 
 \item{value}{an object or value to insert at the target location}
 }
+\value{
+a list object
+}
 \description{
 Set a list value using path-style targeting
 }

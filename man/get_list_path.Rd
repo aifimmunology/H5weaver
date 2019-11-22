@@ -11,6 +11,9 @@ get_list_path(l, target)
 
 \item{target}{a character object specifying the "path" to the target.}
 }
+\value{
+a list object
+}
 \description{
 Retrieve an object from a list using path-style targeting
 }

@@ -60,7 +60,7 @@ test_that(
     expect_true("original_barcodes" %in% names(id_result3$matrix$observations))
     expect_true(class(id_result3$matrix$observations$original_barcodes) == "character")
     expect_equal(length(id_result3$matrix$observations$original_barcodes), length(test_h5l$matrix$barcodes))
-    expect_equal(length(intersect(id_result3$matrix$observations$original_barcodes, test_h5l$matrix$barcodes)), length(test_h5l$matrix$barcodes))
+    expect_equal(length(intersect(id_result3$matrix$observations$original_barcodes, sub("-1","",test_h5l$matrix$barcodes))), length(test_h5l$matrix$barcodes))
 
     id_result4 <- add_cell_ids(test_h5l,
                                add_uuid = FALSE,
@@ -75,6 +75,24 @@ test_that(
     expect_true(class(id_result4$matrix$observations$cell_name) == "character")
     expect_equal(length(id_result4$matrix$observations$cell_name), length(test_h5l$matrix$barcodes))
     expect_equal(length(id_result4$matrix$observations$cell_name), length(unique(id_result4$matrix$observations$cell_name)))
+
+  }
+)
+
+test_that(
+  "add_well_metadata() adds well_id, chip_id, pool_id, and batch_id to h5_list$matrix$observations",
+  {
+    h5l_with_wells <- add_well_metadata(test_h5l,
+                                        "B000-P1C2W4")
+
+    expect_true(class(h5l_with_wells) == "list")
+    expect_true("observations" %in% names(h5l_with_wells$matrix))
+    expect_equal(sum(c("well_id","chip_id","pool_id","batch_id") %in% names(h5l_with_wells$matrix$observations)), 4)
+    expect_identical(h5l_with_wells$matrix$observations$well_id[1], "B000-P1C2W4")
+    expect_identical(h5l_with_wells$matrix$observations$chip_id[1], "B000-P1C2")
+    expect_identical(h5l_with_wells$matrix$observations$pool_id[1], "B000-P1")
+    expect_identical(h5l_with_wells$matrix$observations$batch_id[1], "B000")
+
 
   }
 )
@@ -161,17 +179,76 @@ test_that(
 )
 
 test_that(
+  "add_h5_list_hash_results() adds hto_category, hto_barcode, and hash count data to an h5_list",
+  {
+    test_h5l_hash <- add_h5_list_hash_results(test_h5l,
+                                              hash_category_table = category_table,
+                                              hash_count_matrix = hash_count_matrix,
+                                              match_target = "barcodes")
+
+    common_barcodes <- intersect(sub("-1","",test_h5l$matrix$barcodes),
+                                 colnames(hash_count_matrix))
+    filtered_hcm <- hash_count_matrix[, common_barcodes]
+
+    expect_true(class(test_h5l_hash) == "list")
+    expect_true(length(test_h5l_hash) == 2)
+    expect_equal(sum(c("matrix","hash") %in% names(test_h5l_hash)), 2)
+
+    expect_equal(sum(c("data","indices","indptr","shape","barcodes","features") %in% names(test_h5l_hash$hash)), 6)
+    expect_identical(test_h5l_hash$hash$shape, dim(filtered_hcm))
+
+    expect_true("id" %in% names(test_h5l_hash$hash$features))
+    expect_equal(length(test_h5l_hash$hash$features$id), nrow(hash_count_matrix))
+
+    expect_equal(length(test_h5l_hash$matrix$barcodes), ncol(filtered_hcm))
+    expect_identical(test_h5l_hash$hash$barcodes, test_h5l_hash$matrix$barcodes)
+
+    test_h5l_id <- add_cell_ids(test_h5l,
+                                   add_uuid = TRUE,
+                                   replace_barcode = TRUE,
+                                   retain_original_barcode = TRUE)
+
+    test_h5l_id_hash <- add_h5_list_hash_results(test_h5l_id,
+                                              hash_category_table = category_table,
+                                              hash_count_matrix = hash_count_matrix,
+                                              match_target = "original_barcodes")
+
+    common_barcodes <- intersect(test_h5l_id$matrix$observations$original_barcodes,
+                                 colnames(hash_count_matrix))
+    filtered_hcm <- hash_count_matrix[, common_barcodes]
+
+    expect_true(class(test_h5l_id_hash) == "list")
+    expect_true(length(test_h5l_id_hash) == 2)
+    expect_equal(sum(c("matrix","hash") %in% names(test_h5l_id_hash)), 2)
+
+    expect_equal(sum(c("data","indices","indptr","shape","barcodes","features") %in% names(test_h5l_id_hash$hash)), 6)
+    expect_identical(test_h5l_id_hash$hash$shape, dim(filtered_hcm))
+
+    expect_true("id" %in% names(test_h5l_id_hash$hash$features))
+    expect_equal(length(test_h5l_id_hash$hash$features$id), nrow(hash_count_matrix))
+
+    expect_equal(length(test_h5l_id_hash$matrix$barcodes), ncol(filtered_hcm))
+    expect_identical(test_h5l_id_hash$hash$barcodes, test_h5l_id_hash$matrix$barcodes)
+
+    expect_identical(test_h5l_id_hash$matrix[!names(test_h5l_id_hash$matrix) %in% c("barcodes","observations")],
+                     test_h5l_hash$matrix[!names(test_h5l_hash$matrix) %in% c("barcodes","observations")])
+
+  }
+)
+
+
+test_that(
   "split_h5_list_by_hash() separates an h5_list into a list of lists based on hashes in a category table",
   {
 
     unique_hto_barcodes <- unique(category_table$hto_barcode[category_table$hto_category == "singlet"])
 
-    test_split <- split_h5_list_by_hash(test_h5l,
-                                        hash_category_table = category_table,
-                                        hash_count_matrix = NULL,
-                                        add_uuid = FALSE,
-                                        add_name = FALSE,
-                                        well_id = "R20191105-C1-W1")
+    test_h5l_hash <- add_h5_list_hash_results(test_h5l,
+                                              hash_category_table = category_table,
+                                              hash_count_matrix = hash_count_matrix,
+                                              match_target = "barcodes")
+
+    test_split <- split_h5_list_by_hash(test_h5l_hash)
 
     filtered_category_table <- category_table[category_table$cell_barcode %in% sub("-1","",test_h5l$matrix$barcodes),]
 
@@ -180,24 +257,6 @@ test_that(
     expect_equal(length(test_split[[unique_hto_barcodes[1]]]$matrix$barcodes), sum(filtered_category_table$hto_barcode == unique_hto_barcodes[1]))
     expect_equal(length(test_split[["multiplet"]]$matrix$barcodes), sum(filtered_category_table$hto_category != "singlet"))
 
-    expect_identical(names(test_split[[1]]), c("matrix","hash"))
-    expect_true(class(test_split[[1]]$hash) == "list")
-    expect_true(class(test_split[[1]]$hash$observations$hash_category) == "character")
-    expect_equal(length(test_split[[unique_hto_barcodes[1]]]$hash$observations$hash_category), sum(filtered_category_table$hto_barcode == unique_hto_barcodes[1]))
-
-    test_split2 <- split_h5_list_by_hash(test_h5l,
-                                        hash_category_table = category_table,
-                                        hash_count_matrix = hash_count_matrix,
-                                        add_uuid = TRUE,
-                                        add_name = TRUE,
-                                        well_id = "R20191105-C1-W1")
-
-    expect_true(class(test_split2) == "list")
-
-    expect_identical(names(test_split2[[1]]), c("matrix","hash"))
-    expect_true(class(test_split2[[1]]$hash) == "list")
-    expect_equal(length(test_split2[[unique_hto_barcodes[1]]]$hash$barcodes), sum(filtered_category_table$hto_barcode == unique_hto_barcodes[1]))
-    expect_equal(length(test_split2[["multiplet"]]$hash$barcodes), sum(filtered_category_table$hto_category != "singlet"))
 
   }
 )
@@ -205,12 +264,12 @@ test_that(
 test_that(
   "cat_h5_list() concatenates two h5_list structures at each point in the h5_list hierarchy",
   {
-    test_split <- split_h5_list_by_hash(test_h5l,
-                                        hash_category_table = category_table,
-                                        hash_count_matrix = NULL,
-                                        add_uuid = FALSE,
-                                        add_name = FALSE,
-                                        well_id = "R20191105-C1-W1")
+    test_h5l_hash <- add_h5_list_hash_results(test_h5l,
+                                              hash_category_table = category_table,
+                                              hash_count_matrix = hash_count_matrix,
+                                              match_target = "barcodes")
+
+    test_split <- split_h5_list_by_hash(test_h5l_hash)
 
 
     test_split_1 <- h5_list_convert_to_dgCMatrix(test_split[[1]], target = "matrix")
@@ -233,12 +292,12 @@ test_that(
 test_that(
   "reduce_h5_list() converts a list of h5_list objects into a single merged h5_list",
   {
-    test_split <- split_h5_list_by_hash(test_h5l,
-                                        hash_category_table = category_table,
-                                        hash_count_matrix = NULL,
-                                        add_uuid = FALSE,
-                                        add_name = FALSE,
-                                        well_id = "R20191105-C1-W1")
+    test_h5l_hash <- add_h5_list_hash_results(test_h5l,
+                                              hash_category_table = category_table,
+                                              hash_count_matrix = hash_count_matrix,
+                                              match_target = "barcodes")
+
+    test_split <- split_h5_list_by_hash(test_h5l_hash)
 
     filtered_category_table <- category_table[category_table$cell_barcode %in% sub("-1","",test_h5l$matrix$barcodes),]
 
