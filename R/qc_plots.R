@@ -259,21 +259,22 @@ qc_cutoff_barplot <- function(meta,
 
 }
 
-#' Title
+#' Generate a stacked barplot for two categorical metrics
 #'
-#' @param meta
-#' @param category_x
-#' @param name_x
-#' @param category_y
-#' @param category_name
-#' @param colorset_y
-#' @param name_y
-#' @param as_fraction
+#' The metric used for category_x will generate bars as columns on the x-axis.
+#' The bar will be split vertically based on category_y.
+#'
+#' @param meta A data.frame containing metadata
+#' @param category_x A character object specifying the metadata to use for grouping on the x-axis
+#' @param name_x A character object specifying a name to display on the x-axis
+#' @param category_x A character object specifying the metadata to use for splitting in the y-direction
+#' @param category_name A character object specifying a name to display for the colors
+#' @param colorset_y A colorset to use as fills for category_y. Currently supported: "rainbow" or "varibow". Default is "varibow"
+#' @param name_y A character object specifying a name for the y-axis.
+#' @param as_fraction A logical object specifying whether or not to display the stacked bars as fractions of the total count for each category_x. Default is FALSE.
 #'
 #' @return
 #' @export
-#'
-#' @examples
 qc_stacked_barplot <- function(meta,
                                category_x = "batch_id",
                                name_x = "Batch ID",
@@ -291,7 +292,7 @@ qc_stacked_barplot <- function(meta,
 
   plot_xpos <- data.frame(unique(count_table[[category_x]]))
   names(plot_xpos) <- category_x
-  plot_xpos[order(plot_xpos[[category_x]]),]
+  plot_xpos <- plot_xpos[order(plot_xpos[[category_x]]),,drop = FALSE]
   plot_xpos$xpos <- 1:nrow(plot_xpos)
 
   count_table <- count_table[plot_xpos, on = category_x]
@@ -302,45 +303,59 @@ qc_stacked_barplot <- function(meta,
     set.seed(3030)
     plot_fills$fill <- sample(rainbow(nrow(plot_fills)), nrow(plot_fills))
   } else if(colorset_y == "varibow") {
+    set.seed(3030)
     plot_fills$fill <- sample(varibow(nrow(plot_fills)), nrow(plot_fills))
   }
+  plot_fills <- plot_fills[order(plot_fills[[category_y]]),]
 
   count_table <- count_table[plot_fills, on = category_y]
-  count_table <- count_table[order(get(category_y))]
-  count_table <- count_table[, ymax := cumsum(n_cells), by = get(category_x)]
-  count_table <- count_table[, ymin := shift(ymax, fill = 0, type = "lag"), by = get(category_x)]
+  count_table <- count_table[order(get(category_y), decreasing = TRUE)]
 
-  p <- ggplot() +
-    geom_rect(data = count_table,
-              aes(xmin = xpos - 0.4,
-                  xmax = xpos + 0.4,
-                  ymin = ymin,
-                  ymax = ymax,
-                  fill = fill)) +
-    scale_fill_identity() +
-    scale_x_continuous(name_x,
-                       breaks = plot_xpos$xpos,
-                       labels = plot_xpos[[category_x]]) +
-    scale_y_continuous(name_y) +
-    theme_bw()
+  if(as_fraction) {
+    count_table <- count_table[, ymax := cumsum(n_cells)/sum(n_cells), by = list(get(category_x))]
+    count_table <- count_table[, ymin := shift(ymax, fill = 0, type = "lag"), by = list(get(category_x))]
+  }
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_rect(data = count_table,
+                       ggplot2::aes(xmin = xpos - 0.4,
+                                    xmax = xpos + 0.4,
+                                    ymin = ymin,
+                                    ymax = ymax,
+                                    fill = fill)) +
+    ggplot2::scale_fill_identity(category_name,
+                                 breaks = plot_fills$fill,
+                                 labels = plot_fills[[category_y]],
+                                 guide = "legend") +
+    ggplot2::scale_x_continuous(name_x,
+                                breaks = plot_xpos$xpos,
+                                labels = plot_xpos[[category_x]]) +
+    ggplot2::scale_y_continuous(name_y) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 90,
+                                                       hjust = 1,
+                                                       vjust = 0.3))
+
+  p
 }
 
 
-#' Title
+#' Generate a baseline-aligned barplot for two categorical metrics
 #'
-#' @param meta
-#' @param category_x
-#' @param name_x
-#' @param category_y
-#' @param category_name
-#' @param colorset_y
-#' @param name_y
-#' @param padding
+#' The metric used for category_x will generate bars as columns on the x-axis.
+#' The bar will be split vertically based on category_y. Each group in category_y will be aligned to make them easier to compare.
+#'
+#' @param meta A data.frame containing metadata
+#' @param category_x A character object specifying the metadata to use for grouping on the x-axis
+#' @param name_x A character object specifying a name to display on the x-axis
+#' @param category_x A character object specifying the metadata to use for splitting in the y-direction
+#' @param category_name A character object specifying a name to display for the colors
+#' @param colorset_y A colorset to use as fills for category_y. Currently supported: "rainbow" or "varibow". Default is "varibow"
+#' @param name_y A character object specifying a name for the y-axis.
+#' @param padding A numeric object specifying the fraction of the total vertical space to use for separating category_y groups. Default is 0.2.
 #'
 #' @return
 #' @export
-#'
-#' @examples
 qc_aligned_barplot <- function(meta,
                                category_x = "batch_id",
                                name_x = "Batch ID",
@@ -349,6 +364,7 @@ qc_aligned_barplot <- function(meta,
                                colorset_y = "varibow",
                                name_y = "N Cells",
                                padding = 0.2) {
+
   assertthat::assert_that(colorset_y %in% c("rainbow","varibow"))
 
   tidy_x <- rlang::parse_expr(category_x)
@@ -374,6 +390,7 @@ qc_aligned_barplot <- function(meta,
     set.seed(3030)
     plot_fills$fill <- sample(varibow(nrow(plot_fills)), nrow(plot_fills))
   }
+  plot_fills <- plot_fills[order(plot_fills[[category_y]]),]
   count_table <- count_table[plot_fills, on = category_y]
 
   group_maxes <- count_table[, .(group_max = max(n_cells)), by = get(category_y)]
@@ -388,45 +405,52 @@ qc_aligned_barplot <- function(meta,
   count_table <- count_table[group_maxes, on = category_y]
 
   count_table <- count_table[order(get(category_y), decreasing = TRUE)]
-  count_table <- count_table[, ymax := cumsum(n_cells), by = get(category_x)]
-  count_table <- count_table[, ymin := shift(ymax, fill = 0, type = "lag"), by = get(category_x)]
+  count_table <- count_table[, ymax := cumsum(n_cells), by = list(get(category_x))]
+  count_table <- count_table[, ymin := shift(ymax, fill = 0, type = "lag"), by = list(get(category_x))]
 
-  p <- ggplot() +
-    geom_rect(data = count_table,
-              aes(xmin = xpos - 0.4,
-                  xmax = xpos + 0.4,
-                  ymin = padded_base,
-                  ymax = padded_base + n_cells,
-                  fill = fill)) +
-    geom_hline(data = count_table,
-               aes(yintercept = padded_base)) +
-    geom_hline(data = count_table,
-               aes(yintercept = padded_top),
-               linetype = "dashed") +
-    scale_fill_identity(category_name,
-                        breaks = plot_fills$fill,
-                        labels = plot_fills[[category_y]],
-                        guide = "legend") +
-    scale_x_continuous(name_x,
-                       breaks = plot_xpos$xpos,
-                       labels = plot_xpos[[category_x]]) +
-    scale_y_continuous(name_y,
-                       breaks = c(group_maxes$padded_base,
-                                  group_maxes$padded_top),
-                       labels = c(rep("", nrow(group_maxes)),
-                                  group_maxes$group_max),
-                       expand = expand_scale(c(0, 0.02))) +
-    theme_bw() +
-    theme(panel.grid.minor.y = element_blank(),
-          axis.text.x = element_text(angle = 90,
-                                     hjust = 1,
-                                     vjust = 0.3))
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_rect(data = count_table,
+                       ggplot2::aes(xmin = xpos - 0.4,
+                                    xmax = xpos + 0.4,
+                                    ymin = padded_base,
+                                    ymax = padded_base + n_cells,
+                                    fill = fill)) +
+    ggplot2::geom_hline(data = count_table,
+                        ggplot2::aes(yintercept = padded_base)) +
+    ggplot2::geom_hline(data = count_table,
+                        ggplot2::aes(yintercept = padded_top),
+                        linetype = "dashed") +
+    ggplot2::scale_fill_identity(category_name,
+                                 breaks = plot_fills$fill,
+                                 labels = plot_fills[[category_y]],
+                                 guide = "legend") +
+    ggplot2::scale_x_continuous(name_x,
+                                breaks = plot_xpos$xpos,
+                                labels = plot_xpos[[category_x]]) +
+    ggplot2::scale_y_continuous(name_y,
+                                breaks = c(group_maxes$padded_base,
+                                           group_maxes$padded_top),
+                                labels = c(rep("", nrow(group_maxes)),
+                                           group_maxes$group_max),
+                                expand = ggplot2::expand_scale(c(0, 0.02))) +
+    ggplot2::theme_bw() +
+    ggplot2::theme(panel.grid.minor.y = ggplot2::element_blank(),
+                   axis.text.x = ggplot2::element_text(angle = 90,
+                                                       hjust = 1,
+                                                       vjust = 0.3))
 
   p
 }
 
 
-varibow <- function (n_colors) {
+#' Generate a rainbow palette with variation in saturation and value
+#'
+#' @param n_colors The number of colors to generate
+#'
+#' @return a character vector of hex color values of length n_colors.
+#' @export
+#'
+varibow <- function(n_colors) {
 
   assertthat::assert_that(is.numeric(n_colors))
   assertthat::assert_that(length(n_colors) == 1)

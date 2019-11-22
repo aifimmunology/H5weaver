@@ -21,6 +21,8 @@ quiet_library <- function(...) {
 quiet_library(rhdf5)
 quiet_library(H5weaver)
 quiet_library(Matrix)
+quiet_library(ggplot2)
+quiet_library(cowplot)
 ```
 
 Declaring start
@@ -120,14 +122,319 @@ for(i in seq_along(unique_hashes)) {
 } 
 
 all_meta <- do.call("rbind", meta_list)
+all_meta <- as.data.table(all_meta)
+```
+
+```{r Declare Metrics and Plotting}
+stm("Generating QC Metrics and Plots for Report")
+```
+
+```{r HTO Category Count By Well}
+hto_category_by_well <- all_meta[, 
+                                 .(n_cells = nrow(.SD)),
+                                 by = list(well_id, hto_category)]
+
+hto_category_count_by_well <- dcast(hto_category_by_well,
+                                    formula = well_id ~ hto_category,
+                                    value.var = "n_cells")
+knitr::kable(hto_category_count_by_well,
+             caption = "HTO Category Count per Well")
+```
+
+```{r HTO Category Count By Well Plot, fig.height = 6, fig.width = 10}
+qc_aligned_barplot(all_meta,
+                   category_x = "well_id",
+                   name_x = "Well ID",
+                   category_y = "hto_category",
+                   category_name = "HTO Category",
+                   colorset_y = "varibow",
+                   name_y = "N Cells",
+                   padding = 0.2) +
+  ggtitle("HTO Category Counts per Well")
+```
+
+```{r HTO Category Fraction By Well}
+hto_category_by_well <- hto_category_by_well[,
+                                             frac_cells := round(n_cells/sum(n_cells),4),
+                                             by = well_id]
+
+hto_category_frac_by_well <- dcast(hto_category_by_well,
+                                   formula = well_id ~ hto_category,
+                                   value.var = "frac_cells")
+
+knitr::kable(hto_category_frac_by_well,
+             caption = "HTO Category Fraction per Well")
+```
+
+```{r HTO Category Fraction By Well Plot, fig.height = 6, fig.width = 10}
+qc_stacked_barplot(all_meta,
+                   category_x = "well_id",
+                   name_x = "Well ID",
+                   category_y = "hto_category",
+                   category_name = "HTO Category",
+                   colorset_y = "varibow",
+                   name_y = "Fraction of Cells",
+                   as_fraction = TRUE) +
+  ggtitle("HTO Category Fraction per Well")
 ```
 
 Plot distribution of samples per well and wells per sample:
-```{r}
-all_meta <- as.data.table(all_meta)
+```{r Filter Singlets}
 singlet_meta <- all_meta[hto_category == "singlet"]
 ```
 
+```{r HTO Barcode Count By Well}
+hto_barcode_by_well <- singlet_meta[, 
+                                    .(n_cells = nrow(.SD)),
+                                    by = list(well_id, hto_barcode)]
+
+hto_barcode_count_by_well <- dcast(hto_barcode_by_well,
+                                   formula = well_id ~ hto_barcode,
+                                   value.var = "n_cells")
+knitr::kable(hto_barcode_count_by_well,
+             caption = "Singlet HTO Barcode Count per Well")
+```
+
+```{r HTO Barcode Count By Well, fig.height = 6, fig.width = 10}
+qc_aligned_barplot(singlet_meta,
+                   category_x = "well_id",
+                   name_x = "Well ID",
+                   category_y = "hto_barcode",
+                   category_name = "HTO Barcode",
+                   colorset_y = "varibow",
+                   name_y = "N Cells",
+                   padding = 0.2) +
+  ggtitle("HTO Barcode Distribution in Wells")
+```
+```{r Wells by HTO Barcode Count Plot, fig.height = 6, fig.width = 10}
+qc_aligned_barplot(singlet_meta,
+                   category_x = "hto_barcode",
+                   name_x = "HTO Barcode",
+                   category_y = "well_id",
+                   category_name = "Well ID",
+                   colorset_y = "varibow",
+                   name_y = "N Cells",
+                   padding = 0.2) +
+  ggtitle("Well Distribution in HTO Barcodes")
+```
+```{r HTO Barcode Fraction By Well}
+hto_barcode_by_well <- hto_barcode_by_well[,
+                                             frac_cells := round(n_cells/sum(n_cells),4),
+                                             by = well_id]
+
+hto_barcode_frac_by_well <- dcast(hto_barcode_by_well,
+                                   formula = well_id ~ hto_barcode,
+                                   value.var = "frac_cells")
+
+knitr::kable(hto_barcode_frac_by_well,
+             caption = "HTO Barcode Fraction per Well")
+```
+
+```{r HTO Barcode Fraction By Well Plot, fig.height = 6, fig.width = 10}
+qc_stacked_barplot(singlet_meta,
+                   category_x = "well_id",
+                   name_x = "Well ID",
+                   category_y = "hto_barcode",
+                   category_name = "HTO Barcode",
+                   colorset_y = "varibow",
+                   name_y = "Fraction of Cells",
+                   as_fraction = TRUE) +
+  ggtitle("HTO Barcode Fraction per Well")
+```
+
+```{r Well Fraction By HTO Barcode Plot, fig.height = 6, fig.width = 10}
+qc_stacked_barplot(singlet_meta,
+                   category_x = "hto_barcode",
+                   category_y = "well_id",
+                   category_name = "Well ID",
+                   name_x = "HTO Barcode",
+                   colorset_y = "varibow",
+                   name_y = "Fraction of Cells",
+                   as_fraction = TRUE) +
+  ggtitle("Well Fraction per HTO Barcode")
+```
+
+Counts, Median Reads, UMIs, Genes across all wells
+```{r}
+overview_metrics <- all_meta[,.(n_cells = nrow(.SD),
+                                   median_reads = median(n_reads),
+                                   median_umis = median(n_umis),
+                                   median_genes = median(n_genes))]
+
+knitr::kable(overview_metrics,
+             caption = "Run Metrics Overview")
+```
+
+Median Reads, UMIs, Genes per well
+```{r}
+well_metrics <- all_meta[,.(n_cells = nrow(.SD),
+                            median_reads = as.numeric(median(n_reads)),
+                            median_umis = as.numeric(median(n_umis)),
+                            median_genes = as.numeric(median(n_genes))),
+                         by = well_id]
+
+knitr::kable(well_metrics,
+             caption = "Well Metrics Overview")
+```
+
+```{r}
+qc_violin_plot(all_meta,
+               category_x = "well_id",
+               name_x = "Well ID",
+               column_y = "n_reads",
+               name_y = "N Reads per Cell",
+               fill = "dodgerblue") +
+  ggtitle("Reads per Cell")
+
+```
+
+```{r}
+qc_violin_plot(all_meta,
+               category_x = "well_id",
+               name_x = "Well ID",
+               column_y = "n_umis",
+               name_y = "N UMIs per Cell",
+               fill = "purple") +
+  ggtitle("UMIs per Cell")
+
+```
+
+```{r}
+qc_violin_plot(all_meta,
+               category_x = "well_id",
+               name_x = "Well ID",
+               column_y = "n_genes",
+               name_y = "N Genes per Cell",
+               fill = "orangered") +
+  ggtitle("Genes per Cell")
+
+```
+
+Median Reads, UMIs, Genes per HTO Barcode
+```{r}
+hto_barcode_metrics <- singlet_meta[,.(n_cells = nrow(.SD),
+                            median_reads = as.numeric(median(n_reads)),
+                            median_umis = as.numeric(median(n_umis)),
+                            median_genes = as.numeric(median(n_genes))),
+                         by = hto_barcode]
+
+knitr::kable(well_metrics,
+             caption = "HTO Barcode Metrics Overview")
+```
+
+```{r}
+category_reads_violins <- qc_violin_plot(all_meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_reads",
+                                         name_y = "N Reads per Cell",
+                                         fill = "dodgerblue")
+
+barcode_reads_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_reads",
+                                        name_y = "N Reads per Cell",
+                                        fill = "dodgerblue") +
+  ggtitle("Reads per Cell")
+
+reads_violin_list <- list(category_reads_violins, 
+                          barcode_reads_violins)
+
+plot_grid(plotlist = reads_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
+```
+
+```{r}
+category_umis_violins <- qc_violin_plot(all_meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_umis",
+                                         name_y = "N UMIs per Cell",
+                                         fill = "purple")
+
+barcode_umis_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_umis",
+                                        name_y = "N UMIs per Cell",
+                                        fill = "purple") +
+  ggtitle("UMIs per Cell")
+
+umis_violin_list <- list(category_umis_violins, 
+                          barcode_umis_violins)
+
+plot_grid(plotlist = umis_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
+```
+
+```{r}
+category_genes_violins <- qc_violin_plot(all_meta,
+                                         category_x = "hto_category",
+                                         name_x = "HTO Category",
+                                         column_y = "n_genes",
+                                         name_y = "N Genes per Cell",
+                                         fill = "orangered")
+
+barcode_genes_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
+                                        category_x = "hto_barcode",
+                                        name_x = "HTO Barcode (singlets)",
+                                        column_y = "n_genes",
+                                        name_y = "N Genes per Cell",
+                                        fill = "orangered") +
+  ggtitle("Genes per Cell")
+
+genes_violin_list <- list(category_genes_violins, 
+                          barcode_genes_violins)
+
+plot_grid(plotlist = genes_violin_list,
+          ncol = 2, rel_widths = c(1, 3),
+          nrow = 1, align = "h")
+```
+
+Median Reads per Well By HTO Barcode
+```{r}
+reads_hto_barcode_by_well <- singlet_meta[,
+                                          .(median_reads = median(n_reads)),
+                                          by = list(well_id, hto_barcode)]
+
+reads_hto_barcode_by_well <- dcast(reads_hto_barcode_by_well,
+                                   formula = well_id ~ hto_barcode,
+                                   value.var = "median_reads")
+
+knitr::kable(reads_hto_barcode_by_well,
+             caption = "Median Reads per Singlet HTO Barcode Fraction By Well")
+```
+
+Median UMIs per Well By HTO Barcode
+```{r}
+umis_hto_barcode_by_well <- singlet_meta[,
+                                          .(median_umis = median(n_umis)),
+                                          by = list(well_id, hto_barcode)]
+
+umis_hto_barcode_by_well <- dcast(umis_hto_barcode_by_well,
+                                   formula = well_id ~ hto_barcode,
+                                   value.var = "median_umis")
+
+knitr::kable(umis_hto_barcode_by_well,
+             caption = "Median UMIs per Singlet HTO Barcode Fraction By Well")
+```
+
+Median Genes per Well By HTO Barcode
+```{r}
+genes_hto_barcode_by_well <- singlet_meta[,
+                                          .(median_genes = median(n_genes)),
+                                          by = list(well_id, hto_barcode)]
+
+genes_hto_barcode_by_well <- dcast(genes_hto_barcode_by_well,
+                                   formula = well_id ~ hto_barcode,
+                                   value.var = "median_genes")
+
+knitr::kable(genes_hto_barcode_by_well,
+             caption = "Median Genes per Singlet HTO Barcode Fraction By Well")
+```
 
 ```{r Session Info}
 sessionInfo()

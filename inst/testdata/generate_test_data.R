@@ -84,7 +84,7 @@ well2_list <- h5_list_convert_to_dgCMatrix(well2_list)
 
 well2_keep <- match(keep_genes, well2_list$matrix$features$name)
 
-well2_list$h5_dgCMatrix <- well2_list$h5_dgCMatrix[well2_keep,]
+well2_list$matrix_dgCMatrix <- well2_list$matrix_dgCMatrix[well2_keep,]
 
 well2_list$matrix$features$name <- well2_list$matrix$features$name[well2_keep]
 well2_list$matrix$features$genome <- well2_list$matrix$features$genome[well2_keep]
