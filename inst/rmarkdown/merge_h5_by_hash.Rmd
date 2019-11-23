@@ -121,12 +121,21 @@ for(i in seq_along(unique_hashes)) {
                 overwrite = TRUE)
 } 
 
-all_meta <- do.call("rbind", meta_list)
-all_meta <- as.data.table(all_meta)
+
 ```
 
 ```{r Declare Metrics and Plotting}
 stm("Generating QC Metrics and Plots for Report")
+all_meta <- do.call("rbind", meta_list)
+all_meta <- as.data.table(all_meta)
+if("pbmc_sample_id" %in% names(all_meta)) {
+  all_meta$plot_barcode <- paste0(all_meta$hto_barcode,
+                                 "\n",
+                                 all_meta$pbmc_sample_id)
+} else {
+  all_meta$pbmc_sample_id <- "No PBMC ID"
+  all_meta$plot_barcode <- all_meta$hto_barcode
+}
 ```
 
 ```{r HTO Category Count By Well}
@@ -199,7 +208,7 @@ knitr::kable(hto_barcode_count_by_well,
 qc_aligned_barplot(singlet_meta,
                    category_x = "well_id",
                    name_x = "Well ID",
-                   category_y = "hto_barcode",
+                   category_y = "plot_barcode",
                    category_name = "HTO Barcode",
                    colorset_y = "varibow",
                    name_y = "N Cells",
@@ -208,7 +217,7 @@ qc_aligned_barplot(singlet_meta,
 ```
 ```{r Wells by HTO Barcode Count Plot, fig.height = 6, fig.width = 10}
 qc_aligned_barplot(singlet_meta,
-                   category_x = "hto_barcode",
+                   category_x = "plot_barcode",
                    name_x = "HTO Barcode",
                    category_y = "well_id",
                    category_name = "Well ID",
@@ -234,7 +243,7 @@ knitr::kable(hto_barcode_frac_by_well,
 qc_stacked_barplot(singlet_meta,
                    category_x = "well_id",
                    name_x = "Well ID",
-                   category_y = "hto_barcode",
+                   category_y = "plot_barcode",
                    category_name = "HTO Barcode",
                    colorset_y = "varibow",
                    name_y = "Fraction of Cells",
@@ -244,7 +253,7 @@ qc_stacked_barplot(singlet_meta,
 
 ```{r Well Fraction By HTO Barcode Plot, fig.height = 6, fig.width = 10}
 qc_stacked_barplot(singlet_meta,
-                   category_x = "hto_barcode",
+                   category_x = "plot_barcode",
                    category_y = "well_id",
                    category_name = "Well ID",
                    name_x = "HTO Barcode",
@@ -331,7 +340,7 @@ category_reads_violins <- qc_violin_plot(all_meta,
                                          fill = "dodgerblue")
 
 barcode_reads_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
-                                        category_x = "hto_barcode",
+                                        category_x = "plot_barcode",
                                         name_x = "HTO Barcode (singlets)",
                                         column_y = "n_reads",
                                         name_y = "N Reads per Cell",
@@ -355,7 +364,7 @@ category_umis_violins <- qc_violin_plot(all_meta,
                                         fill = "purple")
 
 barcode_umis_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
-                                       category_x = "hto_barcode",
+                                       category_x = "plot_barcode",
                                        name_x = "HTO Barcode (singlets)",
                                        column_y = "n_umis",
                                        name_y = "N UMIs per Cell",
@@ -379,7 +388,7 @@ category_genes_violins <- qc_violin_plot(all_meta,
                                          fill = "orangered")
 
 barcode_genes_violins <- qc_violin_plot(all_meta[all_meta$hto_category == "singlet",],
-                                        category_x = "hto_barcode",
+                                        category_x = "plot_barcode",
                                         name_x = "HTO Barcode (singlets)",
                                         column_y = "n_genes",
                                         name_y = "N Genes per Cell",

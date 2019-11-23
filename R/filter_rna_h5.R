@@ -337,6 +337,12 @@ add_h5_list_hash_results <- function(h5_list,
                            "/matrix/observations/hto_barcode",
                            common_hash_table$hto_barcode)
 
+  if("pbmc_sample_id" %in% names(common_hash_table)) {
+    h5_list <- set_list_path(h5_list,
+                             "/matrix/observations/pbmc_sample_id",
+                             common_hash_table$pbmc_sample_id)
+  }
+
   for(sparse_matrix in sparse_matrices) {
     h5_list <- h5_list_convert_from_dgCMatrix(h5_list,
                                               target = sparse_matrix)
