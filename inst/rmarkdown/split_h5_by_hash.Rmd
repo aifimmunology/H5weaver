@@ -280,7 +280,10 @@ Metadata prep
 ```{r}
 meta <- as.data.table(meta)
 if("pbmc_sample_id" %in% names(meta)) {
-  meta$hto_barcode <- paste0(meta$hto_barcode,"\n",meta$pbmc_sample_id)
+  meta$plot_barcode <- paste0(meta$hto_barcode,"\n",meta$pbmc_sample_id)
+} else {
+  meta$pbmc_sample_id <- "No PBMC ID"
+  meta$plot_barcode <- meta$hto_barcode
 }
 ```
 
@@ -389,35 +392,41 @@ singlet_meta <- as.data.table(meta[meta$hto_category == "singlet",])
 
 bc_count_stats <- singlet_meta[, .(n_singlets = nrow(.SD),
                                    frac_singlets = round(nrow(.SD)/nrow(singlet_meta), 4)),
-                               by = hto_barcode]
+                               by = list(pbmc_sample_id,hto_barcode)]
 knitr::kable(bc_count_stats, caption = "HTO Barcode Count Stats")
 
 bc_read_stats <- singlet_meta[, .(q_25 = quantile(n_reads, 0.25),
                                   median = quantile(n_reads, 0.50),
                                   q_75 = quantile(n_reads, 0.75)),
-                              by = hto_barcode]
+                              by = list(pbmc_sample_id,hto_barcode)]
 
 knitr::kable(bc_read_stats, caption = "HTO Barcode Singlet Read Stats")
 
 bc_umi_stats <- singlet_meta[, .(q_25 = quantile(n_umis, 0.25),
                                  median = quantile(n_umis, 0.50),
                                  q_75 = quantile(n_umis, 0.75)),
-                             by = hto_barcode]
+                             by = list(pbmc_sample_id,hto_barcode)]
 knitr::kable(bc_umi_stats, caption = "HTO Barcode Singlet UMI Stats")
 
 
 bc_gene_stats <- singlet_meta[, .(q_25 = quantile(n_genes, 0.25),
                                   median = quantile(n_genes, 0.50),
                                   q_75 = quantile(n_genes, 0.75)),
-                              by = hto_barcode]
+                              by = list(pbmc_sample_id,hto_barcode)]
 knitr::kable(bc_gene_stats, caption = "HTO Barcode Singlet Gene Stats")
 ```
 
 Cells per barcode barplot:
 ```{r BC Count Barplot}
+bc_to_plot_bc <- data.frame(hto_barcode = unique(singlet_meta$hto_barcode),
+                            plot_barcode = unique(singlet_meta$plot_barcode))
+
+bc_count_stats <- bc_count_stats[bc_to_plot_bc,
+                                 on = "hto_barcode"]
+
 ggplot() +
   geom_bar(data = bc_count_stats,
-           aes(x = as.factor(hto_barcode),
+           aes(x = as.factor(plot_barcode),
                y = n_singlets),
            stat = "identity") +
   geom_hline(aes(yintercept = median(bc_count_stats$n_singlets)),
@@ -443,7 +452,7 @@ category_reads_violins <- qc_violin_plot(meta,
                                          fill = "dodgerblue")
 
 barcode_reads_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
-                                        category_x = "hto_barcode",
+                                        category_x = "plot_barcode",
                                         name_x = "HTO Barcode (singlets)",
                                         column_y = "n_reads",
                                         name_y = "N Reads per Cell",
@@ -468,7 +477,7 @@ category_umis_violins <- qc_violin_plot(meta,
                                          fill = "purple")
 
 barcode_umis_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
-                                        category_x = "hto_barcode",
+                                        category_x = "plot_barcode",
                                         name_x = "HTO Barcode (singlets)",
                                         column_y = "n_umis",
                                         name_y = "N UMIs per Cell",
@@ -493,7 +502,7 @@ category_genes_violins <- qc_violin_plot(meta,
                                          fill = "orangered")
 
 barcode_genes_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
-                                        category_x = "hto_barcode",
+                                        category_x = "plot_barcode",
                                         name_x = "HTO Barcode (singlets)",
                                         column_y = "n_genes",
                                         name_y = "N Genes per Cell",
