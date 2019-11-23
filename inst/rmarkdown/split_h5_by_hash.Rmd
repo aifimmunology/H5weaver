@@ -276,9 +276,17 @@ qc_scatter_plot(meta,
   ggtitle("Genes by Reads")
 ```
 
+Metadata prep
+```{r}
+meta <- as.data.table(meta)
+if("pbmc_sample_id" %in% names(meta)) {
+  meta$hto_barcode <- paste0(meta$hto_barcode,"\n",meta$pbmc_sample_id)
+}
+```
+
+
 Show read/umi/gene stats per HTO category
 ```{r HTO Category Read UMI Gene Stats}
-meta <- as.data.table(meta)
 hto_order <- c("no_hash","singlet","doublet","multiplet")
 
 hto_count_stats <- meta[, .(n_cells = nrow(.SD),
@@ -419,7 +427,7 @@ ggplot() +
                      limits = c(0, 4000)) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 90,
-                                   hjust = 0,
+                                   hjust = 1,
                                    vjust = 0.3)) +
   ggtitle("Cells per HTO Barcode")
 ```

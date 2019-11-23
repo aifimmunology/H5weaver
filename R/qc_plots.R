@@ -253,7 +253,7 @@ qc_violin_plot <- function(meta,
     ggplot2::scale_x_discrete(name_x) +
     ggplot2::theme_bw() +
     theme(axis.text.x = element_text(angle = 90,
-                                     hjust = 0,
+                                     hjust = 1,
                                      vjust = 0.3))
 
 
