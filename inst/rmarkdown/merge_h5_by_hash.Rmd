@@ -121,12 +121,18 @@ for(i in seq_along(unique_hashes)) {
                 overwrite = TRUE)
 } 
 
-all_meta <- do.call("rbind", meta_list)
-all_meta <- as.data.table(all_meta)
+
 ```
 
 ```{r Declare Metrics and Plotting}
 stm("Generating QC Metrics and Plots for Report")
+all_meta <- do.call("rbind", meta_list)
+all_meta <- as.data.table(all_meta)
+if("pbmc_sample_id" %in% names(all_meta)) {
+  all_meta$hto_barcode <- paste0(all_meta$hto_barcode,
+                                 "\n",
+                                 all_meta$pbmc_sample_id)
+}
 ```
 
 ```{r HTO Category Count By Well}
