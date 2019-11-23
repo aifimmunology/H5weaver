@@ -76,6 +76,30 @@ h5closeAll()
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_category_table.csv.gz",
           "inst/testdata/well1_category_table.csv.gz")
+well1_tbl <- fread("inst/testdata/well1_category_table.csv.gz")
+
+ss <- fread(system.file("reference/SampleSheet_fallback.csv", package = "HTOparser"),
+            col.names = c("pbmc_sample_id","batch_id","hto_name","pool_id"))
+bc_key <- fread(system.file("reference/TotalSeqA_human_hto_key.csv", package = "HTOparser"),
+                header = FALSE, col.names = c("hto_barcode","hto_name"))
+bc_key <- dplyr::left_join(bc_key,ss)
+
+hto_barcodes_to_pbmc_ids <- function(x,
+                                     bc_key) {
+  x <- as.character(x)
+  res <- character()
+  for(i in seq_along(x)) {
+    bcs <- unlist(strsplit(x[i], ";")[[1]])
+    res[i] <- paste(bc_key$pbmc_sample_id[match(bcs, bc_key$hto_barcode)],
+                    collapse = ";")
+  }
+  res
+}
+well1_tbl$pbmc_sample_id <- hto_barcodes_to_pbmc_ids(well1_tbl$hto_barcode,
+                                                     bc_key)
+fwrite(well1_tbl,
+       "inst/testdata/well1_category_table.csv.gz")
+
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_count_matrix.csv.gz",
           "inst/testdata/well1_count_matrix.csv.gz")
 
