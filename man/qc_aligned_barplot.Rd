@@ -25,6 +25,9 @@ qc_aligned_barplot(meta, category_x = "batch_id", name_x = "Batch ID",
 
 \item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
 }
+\value{
+a ggplot2 plot object
+}
 \description{
 The metric used for category_x will generate bars as columns on the x-axis.
 The bar will be split vertically based on category_y. Each group in category_y will be aligned to make them easier to compare.

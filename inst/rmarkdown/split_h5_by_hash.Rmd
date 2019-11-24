@@ -1,10 +1,11 @@
 ---
-title: "Split 10x Genomics scRNA-seq .h5 file based on HTOparser results"
+title: "Split .h5 file based on Cell Hashing"
 author: 
  - Lucas Graybuck
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
   html_document:
+    code_folding: hide
     df_print: paged
     self_contained: true
 params:
@@ -16,6 +17,39 @@ params:
   out_dir: NULL
 ---
 
+<a id="contents"></a>
+
+## Contents
+
+#### [Data Processing](#data_processing)
+- [Session Preparation](#session_preparation)
+- [Load Inputs](#load_inputs)
+- [Assemble Data](#assemble data)
+- [Data Output](#data_output)
+
+#### [QC Metrics and Plots](#qc_metrics)
+- [Well QC](#well_qc)
+  - [Read/UMI/Gene Stats](#rug_stats)
+  - [Read/UMI/Gene Histograms](#rug_hists)
+  - [Read/UMI/Gene Scatters](#rug_scatters)
+- [Hash Category QC](#hash_qc)
+  - [Category Counts](#cat_counts)
+  - [Category Reads](#cat_reads)
+  - [Category UMIs](#cat_umis)
+  - [Category Genes](#cat_genes)
+  - [Category Counts Barplot](#cat_counts_plot)
+  - [Category Fraction Barplot](#cat_frac_plot)
+
+
+<a id="data_processing"></a>
+
+## Data Processing
+
+<a id="session_preparation"></a>
+
+### Session Preparation
+
+Load libraries:
 ```{r Load Libraries}
 start_time <- Sys.time()
 
@@ -70,6 +104,12 @@ print(c(
   paste0("OUT Directory       : ", out_dir)
 ))
 ```
+
+[Return to Contents](#contents)
+
+<a id="load_inputs"></a>
+
+### Load inputs
 
 Load HTO counts
 ```{r Load Count Matrix}
@@ -139,6 +179,12 @@ if("observations" %in% names(h5_list$matrix)) {
 }
 ```
 
+[Return to Contents](#contents)
+
+<a id="assemble_data"></a>
+
+### Assemble data
+
 Compute N UMIs and N Genes per cell
 ```{r n_umi and n_genes}
 stm("Computing UMI and Gene Counts per Cell")
@@ -179,11 +225,48 @@ h5_list <- add_h5_list_hash_results(h5_list,
                                     match_target = "original_barcodes")
 ```
 
+Split list based on hashes
+```{r Split H5 Lists}
+stm("Splitting HDF5 based on Hash Category Table")
+split_h5_list <- split_h5_list_by_hash(h5_list)
+```
+
+[Return to Contents](#contents)
+
+<a id="data_output"></a>
+
+### Write Output
+
+Write HDF5 files
+```{r Write split files}
+for(i in seq_along(split_h5_list)) {
+  out_file <- file.path(out_dir, paste0(in_well, "_", names(split_h5_list)[i],".h5"))
+  stm(paste0("Writing HDF5 to ", out_file))
+  write_h5_list(split_h5_list[[i]],
+                h5_file = out_file)
+  h5closeAll()
+}
+```
+
+[Return to Contents](#contents)
+
+<a id="qc_metrics"></a>
+
+## QC Tables and Plots
+
 Extract metadata for plotting
 ```{r Assemble Metadata}
 stm("Generating tables and plots for report")
 meta <- h5_list_cell_metadata(h5_list)
 ```
+
+[Return to Contents](#contents)
+
+<a id="well_qc"></a>
+
+### Well QC
+
+<a id="rug_stats"></a>
 
 Show read/umi/gene stats overall
 ```{r Read UMI Gene Stats}
@@ -216,8 +299,12 @@ overview_stats$q_25 <- round(overview_stats$q_25, 2)
 overview_stats$median <- round(overview_stats$median, 2)
 overview_stats$q_75 <- round(overview_stats$q_75, 2)
 
-knitr::kable(overview_stats, caption = "Well Stats Overview")
+qc_table(overview_stats)
 ```
+
+[Return to Contents](#contents)
+
+<a id="rug_hists"></a>
 
 Plot read/umi/gene histograms
 ```{r QC histograms}
@@ -249,6 +336,10 @@ plot_grid(plotlist = histogram_list,
           nrow = 3)
 ```
 
+[Return to Contents](#contents)
+
+<a id="rug_scatters"></a>
+
 Plot read/umi/gene scatters
 ```{r Read UMI Gene Scatter Plots}
 qc_scatter_plot(meta,
@@ -276,6 +367,12 @@ qc_scatter_plot(meta,
   ggtitle("Genes by Reads")
 ```
 
+[Return to Contents](#contents)
+
+<a id="hash_cat_qc"></a>
+
+### HTO Category QC
+
 Metadata prep
 ```{r}
 meta <- as.data.table(meta)
@@ -287,8 +384,9 @@ if("pbmc_sample_id" %in% names(meta)) {
 }
 ```
 
+<a id="cat_counts"></a>
 
-Show read/umi/gene stats per HTO category
+Category Counts
 ```{r HTO Category Read UMI Gene Stats}
 hto_order <- c("no_hash","singlet","doublet","multiplet")
 
@@ -298,30 +396,54 @@ hto_count_stats <- meta[, .(n_cells = nrow(.SD),
                             frac_all_aligned_reads = round(sum(.SD$n_reads)/sum(meta$n_reads), 4)),
                         by = hto_category]
 hto_count_stats <- hto_count_stats[match(hto_order,hto_count_stats$hto_category),]
-knitr::kable(hto_count_stats, caption = "HTO Category Count Stats")
+qc_table(hto_count_stats)
+```
 
+[Return to Contents](#contents)
+
+<a id="cat_reads"></a>
+
+Reads per Category
+```{r}
 hto_read_stats <- meta[, .(q_25 = quantile(n_reads, 0.25),
                       median = quantile(n_reads, 0.50),
                       q_75 = quantile(n_reads, 0.75)),
                   by = hto_category]
 hto_read_stats <- hto_read_stats[match(hto_order,hto_read_stats$hto_category),]
-knitr::kable(hto_read_stats, caption = "HTO Category Read Stats")
+qc_table(hto_read_stats)
+```
 
+[Return to Contents](#contents)
+
+<a id="cat_umis"></a>
+
+UMIs per Category
+```{r}
 hto_umi_stats <- meta[, .(q_25 = quantile(n_umis, 0.25),
                       median = quantile(n_umis, 0.50),
                       q_75 = quantile(n_umis, 0.75)),
                   by = hto_category]
 hto_umi_stats <- hto_umi_stats[match(hto_order,hto_umi_stats$hto_category),]
-knitr::kable(hto_umi_stats, caption = "HTO Category UMI Stats")
+qc_table(hto_umi_stats)
+```
 
+[Return to Contents](#contents)
 
+<a id="cat_genes"></a>
+
+Genes per Category
+```{r}
 hto_gene_stats <- meta[, .(q_25 = quantile(n_genes, 0.25),
                       median = quantile(n_genes, 0.50),
                       q_75 = quantile(n_genes, 0.75)),
                   by = hto_category]
 hto_gene_stats <- hto_gene_stats[match(hto_order,hto_gene_stats$hto_category),]
-knitr::kable(hto_gene_stats, caption = "HTO Category Gene Stats")
+qc_table(hto_gene_stats)
 ```
+
+[Return to Contents](#contents)
+
+<a id="cat_counts_plot"></a>
 
 Cells per category barplot:
 ```{r Category Count Barplot}
@@ -354,6 +476,10 @@ ggplot() +
   ggtitle("Cells per HTO Category")
 ```
 
+[Return to Contents](#contents)
+
+<a id="cat_frac_plot"></a>
+
 Category fraction barplot:
 ```{r Category Fraction Barplot}
 plot_df <- hto_count_stats
@@ -385,6 +511,7 @@ ggplot() +
   ggtitle("Fraction of Cells and Reads per HTO Category")
 ```
 
+### HTO Barcode QC
 
 Show read/umi/gene stats per singlet hash
 ```{r HTO Barcode Read UMI Gene Stats}
@@ -517,22 +644,7 @@ plot_grid(plotlist = genes_violin_list,
           nrow = 1, align = "h")
 ```
 
-Split list based on hashes
-```{r Split H5 Lists}
-stm("Splitting HDF5 based on Hash Category Table")
-h5_list <- split_h5_list_by_hash(h5_list)
-```
-
-Write HDF5 files
-```{r Write split files}
-for(i in seq_along(h5_list)) {
-  out_file <- file.path(out_dir, paste0(in_well, "_", names(h5_list)[i],".h5"))
-  stm(paste0("Writing HDF5 to ", out_file))
-  write_h5_list(h5_list[[i]],
-                h5_file = out_file)
-  h5closeAll()
-}
-```
+## Session Information
 
 ```{r Session Info}
 sessionInfo()
