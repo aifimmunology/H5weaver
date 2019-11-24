@@ -6,7 +6,14 @@
 #' @export
 #'
 qc_table <- function(df) {
-  DT::datatable(df_wide,
+
+  assertthat::assert_that(sum(class(df) %in% c("data.frame","data.table")) > 0)
+
+  if(class(df) == "data.table") {
+    df <- as.data.frame(df)
+  }
+
+  DT::datatable(df,
                 class = "compact table-striped",
                 extensions = "Buttons",
                 style = "bootstrap",
