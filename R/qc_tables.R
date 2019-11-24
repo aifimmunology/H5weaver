@@ -9,7 +9,7 @@ qc_table <- function(df) {
 
   assertthat::assert_that(sum(class(df) %in% c("data.frame","data.table")) > 0)
 
-  if(class(df) == "data.table") {
+  if("data.table" %in% class(df)) {
     df <- as.data.frame(df)
   }
 
