@@ -109,3 +109,16 @@ test_that(
 
   }
 )
+
+test_that(
+  "convert_char_na() converts 'NA's to NA",
+  {
+    test_char <- c("hello","there","general", "NA")
+
+    conv_test <- convert_char_na(test_char)
+
+    expect_true(class(conv_test) == "character")
+    expect_true(is.na(conv_test[4]))
+
+  }
+)
