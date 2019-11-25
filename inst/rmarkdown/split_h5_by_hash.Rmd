@@ -1,10 +1,11 @@
 ---
-title: "Split 10x Genomics scRNA-seq .h5 file based on HTOparser results"
+title: "Split .h5 file based on Cell Hashing"
 author: 
  - Lucas Graybuck
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
   html_document:
+    code_folding: hide
     df_print: paged
     self_contained: true
 params:
@@ -16,6 +17,38 @@ params:
   out_dir: NULL
 ---
 
+<a id="contents"></a>
+
+## Contents
+
+#### [Data Processing](#data_processing)
+- [Session Preparation](#session_preparation)
+- [Load Inputs](#load_inputs)
+- [Assemble Data](#assemble data)
+- [Data Output](#data_output)
+
+#### [QC Metrics and Plots](#qc_metrics)
+- [Well-Based QC](#well_qc)
+- [Read/UMI/Gene Stats](#rug_stats)
+- [Read/UMI/Gene Histograms](#rug_hists)
+- [Read/UMI/Gene Scatters](#rug_scatters)
+- [HTO-Based QC](#hash_qc)
+- [Counts](#counts)
+- [Reads](#reads)
+- [UMIs](#umis)
+- [Genes](#genes)
+
+#### [Session Info](#session_info)
+
+<a id="data_processing"></a>
+
+## Data Processing
+
+<a id="session_preparation"></a>
+
+### Session Preparation
+
+#### Load libraries:
 ```{r Load Libraries}
 start_time <- Sys.time()
 
@@ -34,7 +67,7 @@ Declaring start
 stm("Starting .h5 split")
 ```
 
-Argument parsing
+#### Argument parsing
 ```{r Parse arguments}
 if(is.null(params$in_h5)) {
   in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
@@ -60,6 +93,7 @@ stm(paste0("IN  Well ID         : ", in_well))
 stm(paste0("OUT Directory       : ", out_dir))
 ```
 
+#### Input Parameters
 ```{r Print Arguments}
 print(c(
   paste0("IN  H5 file         : ", in_h5),
@@ -71,7 +105,13 @@ print(c(
 ))
 ```
 
-Load HTO counts
+[Return to Contents](#contents)
+
+<a id="load_inputs"></a>
+
+### Load inputs
+
+#### Load HTO counts
 ```{r Load Count Matrix}
 stm(paste0("Loading HTO count matrix from ", in_mat))
 hash_count_df <- fread(in_mat)
@@ -82,7 +122,7 @@ rownames(hash_count_mat) <- hash_count_df[[1]]
 rm(hash_count_df)
 ```
 
-Load HTO categories
+#### Load HTO categories
 ```{r Load Category Table}
 stm(paste0("Loading HTO category table from ", in_tbl))
 hash_category_table <- fread(in_tbl)
@@ -90,7 +130,7 @@ hash_category_table <- fread(in_tbl)
 hto_barcodes <- unique(hash_category_table$hto_barcode[hash_category_table$hto_category == "singlet"])
 ```
 
-Display expected output files
+#### Output File Targets
 ```{r Display Outputs}
 output_h5_files <- file.path(out_dir, paste0(in_well, "_", 
                                              c(hto_barcodes,"multiplet"),
@@ -105,13 +145,13 @@ for(i in seq_along(output_messages)) {
 print(output_messages)
 ```
 
-Load scRNA_seq  Dataset
+#### Load scRNA-seq Dataset
 ```{r Load Query}
 stm(paste0("Loading HDF5 from ", in_h5))
 h5_list <- h5dump(in_h5)
 ```
 
-Read molecule info to get read counts per cell
+#### Read molecule info to get read counts per cell
 ```{r Assemble Read Counts}
 stm(paste0("Assembling Read Counts per Cell from ", in_mol))
 
@@ -139,7 +179,13 @@ if("observations" %in% names(h5_list$matrix)) {
 }
 ```
 
-Compute N UMIs and N Genes per cell
+[Return to Contents](#contents)
+
+<a id="assemble_data"></a>
+
+### Assemble data
+
+#### Compute N UMIs and N Genes per cell
 ```{r n_umi and n_genes}
 stm("Computing UMI and Gene Counts per Cell")
 
@@ -150,7 +196,7 @@ h5_list$matrix$observations$n_genes <- unname(colSums(h5_list$matrix_dgCMatrix >
 h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "matrix")
 ```
 
-Add cell ids
+#### Add cell ids
 ```{r}
 stm("Adding Cell UUIDs and Names")
 
@@ -161,7 +207,7 @@ h5_list <-add_cell_ids(h5_list,
                        add_name = TRUE)
 ```
 
-Generate Chip, Pool, and Batch IDs based on well_id
+#### Generate Chip, Pool, and Batch IDs based on well_id
 ```{r Chip Pool Batch}
 stm("Adding Batch, Pool, Chip, and Well metadata")
 
@@ -169,7 +215,7 @@ h5_list <- add_well_metadata(h5_list,
                              well_id = in_well)
 ```
 
-Add hash data to the list object
+#### Add hash data to the list object
 ```{r Add Hash Data}
 stm("Adding hash data to cellranger results")
 
@@ -179,20 +225,57 @@ h5_list <- add_h5_list_hash_results(h5_list,
                                     match_target = "original_barcodes")
 ```
 
+#### Split list based on hashes
+```{r Split H5 Lists}
+stm("Splitting HDF5 based on Hash Category Table")
+split_h5_list <- split_h5_list_by_hash(h5_list)
+```
+
+[Return to Contents](#contents)
+
+<a id="data_output"></a>
+
+### Write Output
+
+#### Write HDF5 files
+```{r Write split files}
+for(i in seq_along(split_h5_list)) {
+  out_file <- file.path(out_dir, paste0(in_well, "_", names(split_h5_list)[i],".h5"))
+  stm(paste0("Writing HDF5 to ", out_file))
+  write_h5_list(split_h5_list[[i]],
+                h5_file = out_file)
+  h5closeAll()
+}
+```
+
+[Return to Contents](#contents)
+
+<a id="qc_metrics"></a>
+
+## QC Tables and Plots
+
 Extract metadata for plotting
 ```{r Assemble Metadata}
 stm("Generating tables and plots for report")
 meta <- h5_list_cell_metadata(h5_list)
 ```
 
-Show read/umi/gene stats overall
+[Return to Contents](#contents)
+
+<a id="well_qc"></a>
+
+### Well QC
+
+<a id="rug_stats"></a>
+
+#### Well Read/UMI/Gene Summary Stats
 ```{r Read UMI Gene Stats}
 overview_stats <- data.frame(statistic = c("N Reads",
-                                          "N UMIs",
-                                          "N Genes",
-                                          "Reads per UMI",
-                                          "UMIs per Gene",
-                                          "Reads per Gene"),
+                                           "N UMIs",
+                                           "N Genes",
+                                           "Reads per UMI",
+                                           "UMIs per Gene",
+                                           "Reads per Gene"),
                              q_25 = c(quantile(meta$n_reads, 0.25),
                                       quantile(meta$n_umis,  0.25),
                                       quantile(meta$n_genes, 0.25),
@@ -216,10 +299,14 @@ overview_stats$q_25 <- round(overview_stats$q_25, 2)
 overview_stats$median <- round(overview_stats$median, 2)
 overview_stats$q_75 <- round(overview_stats$q_75, 2)
 
-knitr::kable(overview_stats, caption = "Well Stats Overview")
+qc_table(overview_stats)
 ```
 
-Plot read/umi/gene histograms
+[Return to Contents](#contents)
+
+<a id="rug_hists"></a>
+
+### Well Read/UMI/Gene Histograms
 ```{r QC histograms}
 reads_plot <- qc_hist_plot(meta,
                            column = "n_reads",
@@ -229,10 +316,10 @@ reads_plot <- qc_hist_plot(meta,
   ggtitle("Alignment/Mapping Distributions")
 
 umis_plot <- qc_hist_plot(meta,
-                           column = "n_umis",
-                           name_x = "N UMIs per Cell",
-                           fill = "purple",
-                           target = 8e3)
+                          column = "n_umis",
+                          name_x = "N UMIs per Cell",
+                          fill = "purple",
+                          target = 8e3)
 
 genes_plot <- qc_hist_plot(meta,
                            column = "n_genes",
@@ -244,37 +331,67 @@ histogram_list <- list(reads_plot,
                        umis_plot,
                        genes_plot)
 
-plot_grid(plotlist = histogram_list,
-          ncol = 1,
-          nrow = 3)
+suppressWarnings(
+  plot_grid(plotlist = histogram_list,
+            ncol = 1,
+            nrow = 3)
+)
 ```
 
-Plot read/umi/gene scatters
+[Return to Contents](#contents)
+
+<a id="rug_scatters"></a>
+
+#### UMIs vs Reads Scatter Plot
 ```{r Read UMI Gene Scatter Plots}
-qc_scatter_plot(meta,
-                column_x = "n_reads",
-                name_x = "N Reads per Cell",
-                column_y = "n_umis",
-                name_y = "N UMIs per Cell",
-                color = "darkblue") +
-  ggtitle("UMIs by Reads")
+umi_reads_scatter <- qc_scatter_plot(meta,
+                                     column_x = "n_reads",
+                                     name_x = "N Reads per Cell",
+                                     column_y = "n_umis",
+                                     name_y = "N UMIs per Cell",
+                                     color = "darkblue") +
+  ggtitle("UMIs vs Reads")
 
-qc_scatter_plot(meta,
-                column_x = "n_umis",
-                name_x = "N UMIs per Cell",
-                column_y = "n_genes",
-                name_y = "N Genes per Cell",
-                color = "red") +
-  ggtitle("Genes by UMIs")
-
-qc_scatter_plot(meta,
-                column_x = "n_reads",
-                name_x = "N Reads per Cell",
-                column_y = "n_genes",
-                name_y = "N Genes per Cell",
-                color = "darkgreen") +
-  ggtitle("Genes by Reads")
+suppressWarnings(
+  umi_reads_scatter
+)
 ```
+
+#### Genes vs UMIs Scatter Plot
+```{r}
+genes_umis_scatter <- qc_scatter_plot(meta,
+                                      column_x = "n_umis",
+                                      name_x = "N UMIs per Cell",
+                                      column_y = "n_genes",
+                                      name_y = "N Genes per Cell",
+                                      color = "red") +
+  ggtitle("Genes vs UMIs")
+
+suppressWarnings(
+  genes_umis_scatter
+)
+```
+
+#### Genes vs Reads Scatter Plot
+```{r}
+genes_reads_scatter <- qc_scatter_plot(meta,
+                                       column_x = "n_reads",
+                                       name_x = "N Reads per Cell",
+                                       column_y = "n_genes",
+                                       name_y = "N Genes per Cell",
+                                       color = "darkgreen") +
+  ggtitle("Genes vs Reads")
+
+suppressWarnings(
+  genes_reads_scatter
+)
+```
+
+[Return to Contents](#contents)
+
+<a id="hash_qc"></a>
+
+### HTO Category QC
 
 Metadata prep
 ```{r}
@@ -287,8 +404,9 @@ if("pbmc_sample_id" %in% names(meta)) {
 }
 ```
 
+<a id="counts"></a>
 
-Show read/umi/gene stats per HTO category
+#### HTO Category Counts
 ```{r HTO Category Read UMI Gene Stats}
 hto_order <- c("no_hash","singlet","doublet","multiplet")
 
@@ -298,39 +416,18 @@ hto_count_stats <- meta[, .(n_cells = nrow(.SD),
                             frac_all_aligned_reads = round(sum(.SD$n_reads)/sum(meta$n_reads), 4)),
                         by = hto_category]
 hto_count_stats <- hto_count_stats[match(hto_order,hto_count_stats$hto_category),]
-knitr::kable(hto_count_stats, caption = "HTO Category Count Stats")
 
-hto_read_stats <- meta[, .(q_25 = quantile(n_reads, 0.25),
-                      median = quantile(n_reads, 0.50),
-                      q_75 = quantile(n_reads, 0.75)),
-                  by = hto_category]
-hto_read_stats <- hto_read_stats[match(hto_order,hto_read_stats$hto_category),]
-knitr::kable(hto_read_stats, caption = "HTO Category Read Stats")
-
-hto_umi_stats <- meta[, .(q_25 = quantile(n_umis, 0.25),
-                      median = quantile(n_umis, 0.50),
-                      q_75 = quantile(n_umis, 0.75)),
-                  by = hto_category]
-hto_umi_stats <- hto_umi_stats[match(hto_order,hto_umi_stats$hto_category),]
-knitr::kable(hto_umi_stats, caption = "HTO Category UMI Stats")
-
-
-hto_gene_stats <- meta[, .(q_25 = quantile(n_genes, 0.25),
-                      median = quantile(n_genes, 0.50),
-                      q_75 = quantile(n_genes, 0.75)),
-                  by = hto_category]
-hto_gene_stats <- hto_gene_stats[match(hto_order,hto_gene_stats$hto_category),]
-knitr::kable(hto_gene_stats, caption = "HTO Category Gene Stats")
+qc_table(hto_count_stats)
 ```
 
-Cells per category barplot:
+#### HTO Category Count Barplot
 ```{r Category Count Barplot}
 hto_count_stats$fill <- c("black",
                           "darkblue",
                           "dodgerblue",
                           "mediumorchid4")
 
-ggplot() +
+category_counts_barplot <- ggplot() +
   geom_bar(data = hto_count_stats,
            aes(x = as.factor(1:nrow(hto_count_stats)),
                y = n_cells,
@@ -352,9 +449,13 @@ ggplot() +
                                    hjust = 0,
                                    vjust = 0.3)) +
   ggtitle("Cells per HTO Category")
+
+suppressWarnings(
+  category_counts_barplot
+)
 ```
 
-Category fraction barplot:
+#### HTO Category Fraction Barplot
 ```{r Category Fraction Barplot}
 plot_df <- hto_count_stats
 plot_df$cells_max <- cumsum(plot_df$frac_cells)
@@ -362,7 +463,7 @@ plot_df$cells_min <- shift(plot_df$cells_max, type = "lag", fill = 0)
 plot_df$reads_max <- cumsum(plot_df$frac_all_aligned_reads)
 plot_df$reads_min <- shift(plot_df$reads_max, type = "lag", fill = 0)
 
-ggplot() +
+hto_category_fraction_barplot <- ggplot() +
   geom_rect(data = plot_df,
             aes(xmin = reads_min,
                 xmax = reads_max,
@@ -383,40 +484,23 @@ ggplot() +
                                 "Fraction of Cell Barcodes")) +
   theme_bw() +
   ggtitle("Fraction of Cells and Reads per HTO Category")
+
+suppressWarnings(
+  hto_category_fraction_barplot
+)
 ```
 
-
-Show read/umi/gene stats per singlet hash
+#### HTO Barcode Count Stats
 ```{r HTO Barcode Read UMI Gene Stats}
 singlet_meta <- as.data.table(meta[meta$hto_category == "singlet",])
 
 bc_count_stats <- singlet_meta[, .(n_singlets = nrow(.SD),
                                    frac_singlets = round(nrow(.SD)/nrow(singlet_meta), 4)),
                                by = list(pbmc_sample_id,hto_barcode)]
-knitr::kable(bc_count_stats, caption = "HTO Barcode Count Stats")
-
-bc_read_stats <- singlet_meta[, .(q_25 = quantile(n_reads, 0.25),
-                                  median = quantile(n_reads, 0.50),
-                                  q_75 = quantile(n_reads, 0.75)),
-                              by = list(pbmc_sample_id,hto_barcode)]
-
-knitr::kable(bc_read_stats, caption = "HTO Barcode Singlet Read Stats")
-
-bc_umi_stats <- singlet_meta[, .(q_25 = quantile(n_umis, 0.25),
-                                 median = quantile(n_umis, 0.50),
-                                 q_75 = quantile(n_umis, 0.75)),
-                             by = list(pbmc_sample_id,hto_barcode)]
-knitr::kable(bc_umi_stats, caption = "HTO Barcode Singlet UMI Stats")
-
-
-bc_gene_stats <- singlet_meta[, .(q_25 = quantile(n_genes, 0.25),
-                                  median = quantile(n_genes, 0.50),
-                                  q_75 = quantile(n_genes, 0.75)),
-                              by = list(pbmc_sample_id,hto_barcode)]
-knitr::kable(bc_gene_stats, caption = "HTO Barcode Singlet Gene Stats")
+qc_table(bc_count_stats)
 ```
 
-Cells per barcode barplot:
+#### HTO Barcode Counts Barplot
 ```{r BC Count Barplot}
 bc_to_plot_bc <- data.frame(hto_barcode = unique(singlet_meta$hto_barcode),
                             plot_barcode = unique(singlet_meta$plot_barcode))
@@ -441,8 +525,30 @@ ggplot() +
   ggtitle("Cells per HTO Barcode")
 ```
 
+[Return to Contents](#contents)
 
-Read distributions by HTO category and HTO barcode
+<a id="reads"></a>
+
+#### HTO Category Read Stats
+```{r}
+hto_read_stats <- meta[, .(q_25 = quantile(n_reads, 0.25),
+                           median = quantile(n_reads, 0.50),
+                           q_75 = quantile(n_reads, 0.75)),
+                       by = hto_category]
+hto_read_stats <- hto_read_stats[match(hto_order,hto_read_stats$hto_category),]
+qc_table(hto_read_stats)
+```
+
+#### HTO Barcode Read Stats
+```{r}
+bc_read_stats <- singlet_meta[, .(q_25 = quantile(n_reads, 0.25),
+                                  median = quantile(n_reads, 0.50),
+                                  q_75 = quantile(n_reads, 0.75)),
+                              by = list(pbmc_sample_id,hto_barcode)]
+qc_table(bc_read_stats)
+```
+
+#### HTO Category/Barcode UMI Reads Plots
 ```{r}
 category_reads_violins <- qc_violin_plot(meta,
                                          category_x = "hto_category",
@@ -462,37 +568,87 @@ barcode_reads_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
 reads_violin_list <- list(category_reads_violins, 
                           barcode_reads_violins)
 
-plot_grid(plotlist = reads_violin_list,
-          ncol = 2, rel_widths = c(1, 3),
-          nrow = 1, align = "h")
+suppressWarnings(
+  plot_grid(plotlist = reads_violin_list,
+            ncol = 2, rel_widths = c(1, 3),
+            nrow = 1, align = "h")
+)
 ```
 
-UMI distributions by HTO category and HTO barcode
+[Return to Contents](#contents)
+
+<a id="umis"></a>
+
+#### HTO Category UMI Stats
+```{r}
+hto_umi_stats <- meta[, .(q_25 = quantile(n_umis, 0.25),
+                          median = quantile(n_umis, 0.50),
+                          q_75 = quantile(n_umis, 0.75)),
+                      by = hto_category]
+hto_umi_stats <- hto_umi_stats[match(hto_order,hto_umi_stats$hto_category),]
+qc_table(hto_umi_stats)
+```
+
+#### HTO Barcode UMI Stats
+```{r}
+bc_umi_stats <- singlet_meta[, .(q_25 = quantile(n_umis, 0.25),
+                                 median = quantile(n_umis, 0.50),
+                                 q_75 = quantile(n_umis, 0.75)),
+                             by = list(pbmc_sample_id,hto_barcode)]
+qc_table(bc_umi_stats)
+```
+
+#### HTO Category/Barcode UMI Violin Plots
 ```{r}
 category_umis_violins <- qc_violin_plot(meta,
-                                         category_x = "hto_category",
-                                         name_x = "HTO Category",
-                                         column_y = "n_umis",
-                                         name_y = "N UMIs per Cell",
-                                         fill = "purple")
-
-barcode_umis_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
-                                        category_x = "plot_barcode",
-                                        name_x = "HTO Barcode (singlets)",
+                                        category_x = "hto_category",
+                                        name_x = "HTO Category",
                                         column_y = "n_umis",
                                         name_y = "N UMIs per Cell",
-                                        fill = "purple") +
+                                        fill = "purple")
+
+barcode_umis_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
+                                       category_x = "plot_barcode",
+                                       name_x = "HTO Barcode (singlets)",
+                                       column_y = "n_umis",
+                                       name_y = "N UMIs per Cell",
+                                       fill = "purple") +
   ggtitle("UMIs per Cell")
 
 umis_violin_list <- list(category_umis_violins, 
-                          barcode_umis_violins)
+                         barcode_umis_violins)
 
-plot_grid(plotlist = umis_violin_list,
-          ncol = 2, rel_widths = c(1, 3),
-          nrow = 1, align = "h")
+suppressWarnings(
+  plot_grid(plotlist = umis_violin_list,
+            ncol = 2, rel_widths = c(1, 3),
+            nrow = 1, align = "h")
+)
 ```
 
-Gene distributions by HTO category and HTO barcode
+[Return to Contents](#contents)
+
+<a id="genes"></a>
+
+#### HTO Category Gene Stats
+```{r}
+hto_gene_stats <- meta[, .(q_25 = quantile(n_genes, 0.25),
+                           median = quantile(n_genes, 0.50),
+                           q_75 = quantile(n_genes, 0.75)),
+                       by = hto_category]
+hto_gene_stats <- hto_gene_stats[match(hto_order,hto_gene_stats$hto_category),]
+qc_table(hto_gene_stats)
+```
+
+#### HTO Barcode Gene Stats
+```{r}
+bc_gene_stats <- singlet_meta[, .(q_25 = quantile(n_genes, 0.25),
+                                  median = quantile(n_genes, 0.50),
+                                  q_75 = quantile(n_genes, 0.75)),
+                              by = list(pbmc_sample_id,hto_barcode)]
+qc_table(bc_gene_stats)
+```
+
+#### HTO Category/Barcode Gene Violin Plots
 ```{r}
 category_genes_violins <- qc_violin_plot(meta,
                                          category_x = "hto_category",
@@ -512,27 +668,18 @@ barcode_genes_violins <- qc_violin_plot(meta[meta$hto_category == "singlet",],
 genes_violin_list <- list(category_genes_violins, 
                           barcode_genes_violins)
 
-plot_grid(plotlist = genes_violin_list,
-          ncol = 2, rel_widths = c(1, 3),
-          nrow = 1, align = "h")
+suppressWarnings(
+  plot_grid(plotlist = genes_violin_list,
+            ncol = 2, rel_widths = c(1, 3),
+            nrow = 1, align = "h")
+)
 ```
 
-Split list based on hashes
-```{r Split H5 Lists}
-stm("Splitting HDF5 based on Hash Category Table")
-h5_list <- split_h5_list_by_hash(h5_list)
-```
+[Return to Contents](#contents)
 
-Write HDF5 files
-```{r Write split files}
-for(i in seq_along(h5_list)) {
-  out_file <- file.path(out_dir, paste0(in_well, "_", names(h5_list)[i],".h5"))
-  stm(paste0("Writing HDF5 to ", out_file))
-  write_h5_list(h5_list[[i]],
-                h5_file = out_file)
-  h5closeAll()
-}
-```
+<a id="session_info"></a>
+
+## Session Information
 
 ```{r Session Info}
 sessionInfo()
@@ -549,3 +696,5 @@ print(time_message)
 stm(time_message)
 stm("HTO count processing complete.")
 ```
+
+[Return to Contents](#contents)

@@ -336,7 +336,7 @@ qc_cutoff_barplot <- function(meta,
 #' @param name_y A character object specifying a name for the y-axis.
 #' @param as_fraction A logical object specifying whether or not to display the stacked bars as fractions of the total count for each category_x. Default is FALSE.
 #'
-#' @return
+#' @return a ggplot2 plot object
 #' @export
 qc_stacked_barplot <- function(meta,
                                category_x = "batch_id",
@@ -435,7 +435,7 @@ qc_stacked_barplot <- function(meta,
 #' @param name_y A character object specifying a name for the y-axis.
 #' @param padding A numeric object specifying the fraction of the total vertical space to use for separating category_y groups. Default is 0.2.
 #'
-#' @return
+#' @return a ggplot2 plot object
 #' @export
 qc_aligned_barplot <- function(meta,
                                category_x = "batch_id",
