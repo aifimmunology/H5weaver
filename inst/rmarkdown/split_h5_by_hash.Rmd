@@ -29,14 +29,14 @@ params:
 
 #### [QC Metrics and Plots](#qc_metrics)
 - [Well-Based QC](#well_qc)
-- [Read/UMI/Gene Stats](#rug_stats)
-- [Read/UMI/Gene Histograms](#rug_hists)
-- [Read/UMI/Gene Scatters](#rug_scatters)
+  - [Read/UMI/Gene Stats](#rug_stats)
+  - [Read/UMI/Gene Histograms](#rug_hists)
+  - [Read/UMI/Gene Scatters](#rug_scatters)
 - [HTO-Based QC](#hash_qc)
-- [Counts](#counts)
-- [Reads](#reads)
-- [UMIs](#umis)
-- [Genes](#genes)
+  - [Counts](#counts)
+  - [Reads](#reads)
+  - [UMIs](#umis)
+  - [Genes](#genes)
 
 #### [Session Info](#session_info)
 
