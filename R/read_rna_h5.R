@@ -97,6 +97,30 @@ strip_1d_array_recursive <- function(x) {
   x
 }
 
+
+#' Convert all "NA" character values to actual NAs recursively
+#'
+#' @param x a list object
+#'
+#' @return a list object with "NA"s converted to NA
+#' @export
+#'
+convert_char_na_recursive <- function(x) {
+  assertthat::assert_that(class(x) == "list")
+
+  if(length(x) > 0) {
+    for(n in seq_along(x)) {
+      if(class(x[[n]]) == "list") {
+        x[[n]] <- convert_char_na_recursive(x[[n]])
+      } else if(class(x[[n]]) == "character") {
+        x[[n]] <- convert_char_na(x[[n]])
+      }
+    }
+  }
+
+  x
+}
+
 #' Dump all objects from an HDF5 file to a list.
 #'
 #' This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors.
@@ -110,6 +134,7 @@ h5dump <- function(...) {
 
   h5_list <- rhdf5::h5dump(...)
   h5_list <- strip_1d_array_recursive(h5_list)
+  h5_list <- convert_char_na_recursive(h5_list)
 
   h5_list
 }

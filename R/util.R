@@ -183,3 +183,16 @@ h5_list_transpose <- function(h5_list,
 
   h5_list
 }
+
+#' Convert "NA" character entries to actual NAs
+#'
+#' @param x a character vector
+#'
+#' @return a character vector with NAs
+#' @export
+#'
+convert_char_na <- function(x) {
+  assertthat::assert_that(class(x) == "character")
+  x[x == "NA"] <- NA
+  x
+}
