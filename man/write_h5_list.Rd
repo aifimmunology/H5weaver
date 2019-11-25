@@ -4,12 +4,15 @@
 \alias{write_h5_list}
 \title{Write an h5_list, as created by rhdf5::h5dump(), to an .h5 file}
 \usage{
-write_h5_list(h5_list, h5_file, h5_handle = NULL, h5_target = "/")
+write_h5_list(h5_list, h5_file, overwrite = FALSE, h5_handle = NULL,
+  h5_target = "/")
 }
 \arguments{
 \item{h5_list}{a list object, e.g. a list created by rhdf5::h5dump()}
 
 \item{h5_file}{a character object specifying the location of a .h5 file to write to.}
+
+\item{overwrite}{a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.}
 
 \item{h5_handle}{an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.}
 

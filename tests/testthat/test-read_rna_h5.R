@@ -47,3 +47,24 @@ test_that(
     expect_identical(rownames(test_mat), as.vector(h5read(test_h5, "/matrix/features/id")))
   }
 )
+
+test_that(
+  "strip_1d_array_recursive() needs tests",
+  {
+
+  }
+)
+
+test_that(
+  "convert_char_na_recursive() needs tests",
+  {
+
+  }
+)
+
+test_that(
+  "h5_dump() needs tests",
+  {
+
+  }
+)

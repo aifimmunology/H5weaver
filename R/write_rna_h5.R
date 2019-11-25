@@ -6,7 +6,7 @@
 #' @export
 #'
 choose_integer_bits <- function(x) {
-  max_val <- max(x)
+  max_val <- max(x, na.rm = TRUE)
 
   if(max_val < 2^16) {
     16L
@@ -139,6 +139,8 @@ write_h5_list <- function(h5_list,
                 name = new_object)
 
       } else if(class(h5_list[[h5_name]]) == "character") {
+        h5_list[[h5_name]][is.na(h5_list[[h5_name]])] <- "NA"
+
         h5createDataset(h5_handle,
                         dataset = new_object,
                         dims = list(length(h5_list[[h5_name]])),
