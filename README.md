@@ -42,6 +42,38 @@ H5weaver allows for reading of the contents of an HDF5 file in multiple ways. To
 h5_file <- system.file("testdata/well1.h5", package = "H5weaver")
 ```
 
+### Reading the matrix directly
+
+There is also a convenience function to directly read the main cell x gene matrix from the HDF5 file, read_h5_dgCMatrix():
+
+```
+library(H5weaver)
+
+mat <- read_h5_dgCMatrix(h5_file)
+```
+
+**Note:** By default, this matrix will be 1-indexed for convenient use in R. If you would rather retrieve a 0-indexed matrix, set the index1 parameter to FALSE:
+```
+mat <- read_h5_dgCMatrix(h5_file,
+                         index1 = FALSE)
+```
+
+### Reading cell metadata directly
+
+A convenience function is provided to retrieve all cell/observation-based metadata, read_h5_cell_meta():
+```
+cell_meta <- read_h5_cell_meta(h5_file)
+```
+Note that for the test dataset, this is only the cell barcodes, as additional metadata are not present.
+
+### Reading feature metadata directly
+
+A similar function is also provided for gene/feature-based metadata, read_h5_feature_meta():
+```
+feat_meta <- read_h5_feature_meta(h5_file)
+```
+
+
 ### Reading and separating out all contents
 
 To read the entirety of an HDF5 file as a list object, use h5dump():
@@ -68,15 +100,7 @@ cell_metadata <- cbind(data.frame(barcodes = h5_list$matrix$barcodes),
                        as.data.frame(h5_list$matrix$observations))
 ```
 
-### Reading the matrix directly
 
-There is also a convenience function to directly read the main cell x gene matrix from the HDF5 file, read_h5_dgCMatrix():
-
-```
-library(H5weaver)
-
-mat <- read_h5_dgCMatrix(h5_file)
-```
 
 ## Tests
 

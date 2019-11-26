@@ -3,13 +3,15 @@
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
 #' @param sample_names a character object specifying which values to use for col.names. If "barcodes", will use /matrix/barcodes. Other values will be read from /matrix/observations/
+#' @param index1 a logical object specifying whether index vectors should start with 0 (FALSE) or 1 (TRUE). Default is TRUE.
 #'
 #' @return a dgCMatrix of gene expression values.
 #' @export
 #'
 read_h5_dgCMatrix <- function(h5_file,
                               feature_names = "id",
-                              sample_names = "barcodes") {
+                              sample_names = "barcodes",
+                              index1 = TRUE) {
 
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
@@ -41,17 +43,143 @@ read_h5_dgCMatrix <- function(h5_file,
     colname_target <- paste0("/matrix/observations/", sample_names)
   }
 
-  mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
-                      i = h5read(h5_handle, "/matrix/indices"),
-                      p = h5read(h5_handle, "/matrix/indptr"),
-                      index1 = FALSE,
-                      dims = h5read(h5_handle, "/matrix/shape"),
-                      dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
-                                      as.vector(h5read(h5_handle, colname_target))
-                                      )
-                      )
+  if(index1) {
+    mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
+                        i = h5read(h5_handle, "/matrix/indices") + 1,
+                        p = h5read(h5_handle, "/matrix/indptr"),
+                        index1 = index1,
+                        dims = h5read(h5_handle, "/matrix/shape"),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
+                                        as.vector(h5read(h5_handle, colname_target))
+                        )
+    )
+  } else {
+    mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
+                        i = h5read(h5_handle, "/matrix/indices"),
+                        p = h5read(h5_handle, "/matrix/indptr"),
+                        index1 = index1,
+                        dims = h5read(h5_handle, "/matrix/shape"),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
+                                        as.vector(h5read(h5_handle, colname_target))
+                        )
+    )
+  }
+
 
   mat
+}
+
+#' Read .h5 Cell Metadata
+#'
+#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target A matrix object in the .h5 file with a /barcodes object and/or a /target/observations/ sub-group. Default is "matrix".
+#'
+#' @return A data.frame containing all feature metadata found in /target/barcodes and /target/observations/
+#' @export
+#'
+read_h5_cell_meta <- function(h5_file,
+                              target = "matrix") {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+
+  target <- ifelse(grepl("^/",target),
+                   target,
+                   paste0("/",target))
+
+  h5_contents <- h5ls(h5_file)
+  target_contents <- h5_contents[grepl(paste0("^",target), h5_contents$group),]
+
+  h5_meta_targets <- character()
+
+  target_bcs <- paste0(target, "/barcodes")
+
+  if(target_bcs %in% target_contents$full_name) {
+    h5_meta_targets <- c(h5_meta_targets,
+                         target_bcs)
+  }
+
+  target_obs <- paste0(target, "/observations")
+
+  if(target_obs %in% target_contents$full_name) {
+    h5_meta_targets <- c(h5_meta_targets,
+                         target_contents$full_name[target_contents$group == target_obs])
+  }
+
+  if(length(h5_meta_targets) > 0) {
+    meta_list <- lapply(h5_meta_targets,
+                        function(x) {
+                          rhdf5::h5read(h5_file,
+                                        x)
+                        })
+    rhdf5::h5closeAll()
+
+    names(meta_list) <- sub(".+/","",h5_meta_targets)
+
+    meta_list <- strip_1d_array_recursive(meta_list)
+    meta_list <- convert_char_na_recursive(meta_list)
+
+    df <- as.data.frame(meta_list,
+                        stringsAsFactors = FALSE)
+
+    df
+  } else {
+    stop("No cell metadata found in h5_file.")
+  }
+}
+
+#' Read .h5 Feature Metadata
+#'
+#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#'
+#' @return a data.frame containing all feature metadata found in /target/features/
+#' @export
+read_h5_feature_meta <- function(h5_file,
+                                 target = "matrix") {
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+
+  target <- ifelse(grepl("^/",target),
+                   target,
+                   paste0("/",target))
+
+  h5_contents <- h5ls(h5_file)
+  target_contents <- h5_contents[grepl(paste0("^",target), h5_contents$group),]
+
+  h5_meta_targets <- character()
+
+  target_feat <- paste0(target, "/features")
+
+  if(target_feat %in% target_contents$full_name) {
+    h5_meta_targets <- c(h5_meta_targets,
+                         target_contents$full_name[target_contents$group == target_feat])
+  }
+
+  h5_meta_names <- sub(".+/","",h5_meta_targets)
+  h5_meta_targets <- h5_meta_targets[!grepl("^_",h5_meta_names)]
+  h5_meta_names <- h5_meta_names[!grepl("^_",h5_meta_names)]
+
+  if(length(h5_meta_targets) > 0) {
+    meta_list <- lapply(h5_meta_targets,
+                        function(x) {
+                          rhdf5::h5read(h5_file,
+                                        x)
+                        })
+    rhdf5::h5closeAll()
+
+    names(meta_list) <- h5_meta_names
+
+    meta_list <- strip_1d_array_recursive(meta_list)
+    meta_list <- convert_char_na_recursive(meta_list)
+
+    df <- as.data.frame(meta_list,
+                        stringsAsFactors = FALSE)
+
+    df
+  } else {
+    stop("No cell metadata found in h5_file.")
+  }
 }
 
 #' List objects in an HDF5 file
