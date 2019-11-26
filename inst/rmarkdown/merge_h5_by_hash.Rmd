@@ -180,7 +180,7 @@ for(i in seq_along(unique_hashes)) {
   # transposed version for visualization
   h5_list <- h5_list_transpose(h5_list,
                                sparse_matrices = c("matrix","hash"))
-  t_out_file <- file.path(out_dir, paste0("transposed_",current_hash, ".h5"))
+
   stm(paste0("Writing HDF5 to     : ", t_out_file))
   
   write_h5_list(h5_list,
