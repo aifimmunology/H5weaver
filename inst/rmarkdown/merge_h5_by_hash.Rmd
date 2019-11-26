@@ -19,7 +19,7 @@ params:
 - [Session Preparation](#session_preparation)
 - [Identify Inputs](#find_inputs)
 - [Identify Hashes](#find_hashes)
-- [Mergey by Hash](#merge_data)
+- [Merge by Hash](#merge_data)
 
 #### [QC Metrics and Plots](#qc_metrics)
 - [Pool-Based QC](#pool_qc)
