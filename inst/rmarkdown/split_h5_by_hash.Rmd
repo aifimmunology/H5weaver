@@ -694,7 +694,7 @@ time_message <- paste0("Elapsed Time: ",
                        " ", units(diff_time))
 print(time_message)
 stm(time_message)
-stm("HTO count processing complete.")
+stm("H5 split process complete.")
 ```
 
 [Return to Contents](#contents)
