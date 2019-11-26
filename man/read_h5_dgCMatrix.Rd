@@ -5,7 +5,7 @@
 \title{Read the /matrix from a .h5 file as a sparse matrix}
 \usage{
 read_h5_dgCMatrix(h5_file, feature_names = "id",
-  sample_names = "barcodes")
+  sample_names = "barcodes", index1 = TRUE)
 }
 \arguments{
 \item{h5_file}{the path to an .h5 file in 10x Genomics format}
@@ -13,6 +13,8 @@ read_h5_dgCMatrix(h5_file, feature_names = "id",
 \item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "id".}
 
 \item{sample_names}{a character object specifying which values to use for col.names. If "barcodes", will use /matrix/barcodes. Other values will be read from /matrix/observations/}
+
+\item{index1}{a logical object specifying whether index vectors should start with 0 (FALSE) or 1 (TRUE). Default is TRUE.}
 }
 \value{
 a dgCMatrix of gene expression values.
