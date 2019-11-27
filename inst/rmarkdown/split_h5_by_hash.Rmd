@@ -243,7 +243,8 @@ for(i in seq_along(split_h5_list)) {
   out_file <- file.path(out_dir, paste0(in_well, "_", names(split_h5_list)[i],".h5"))
   stm(paste0("Writing HDF5 to ", out_file))
   write_h5_list(split_h5_list[[i]],
-                h5_file = out_file)
+                h5_file = out_file,
+                overwrite = TRUE)
   h5closeAll()
 }
 ```
@@ -694,7 +695,7 @@ time_message <- paste0("Elapsed Time: ",
                        " ", units(diff_time))
 print(time_message)
 stm(time_message)
-stm("HTO count processing complete.")
+stm("H5 split process complete.")
 ```
 
 [Return to Contents](#contents)
