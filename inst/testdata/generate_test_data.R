@@ -1,8 +1,8 @@
 library(rhdf5)
 library(H5weaver)
 
-chrM_genes <- fread(system.file("inst/reference/GRCh38_10x_chrM_gene_metadata.csv.gz"),
-                    package = "H5weaver")
+chrM_genes <- fread(system.file("reference/GRCh38_10x_chrM_gene_metadata.csv.gz",
+                                package = "H5weaver"))
 
 well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W1/filtered_feature_bc_matrix.h5"
 well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W3/filtered_feature_bc_matrix.h5"
