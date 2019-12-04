@@ -130,7 +130,9 @@ h5_list_add_mito_umis <- function(h5_list) {
     stop("No Mitochondrial Genes found in h5_list")
   }
 
-  mito_umis <- colSums(h5_list$matrix_dgCMatrix[common_mito_genes,])
+  common_mito_ids <- rownames(h5_list$matrix_dgCMatrix)[h5_list$matrix$features$name %in% common_mito_genes]
+
+  mito_umis <- colSums(h5_list$matrix_dgCMatrix[common_mito_ids,])
 
   h5_list <- set_list_path(h5_list,
                            "/matrix/observations/n_mito_umis",
