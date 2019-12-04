@@ -225,6 +225,13 @@ h5_list <- add_h5_list_hash_results(h5_list,
                                     match_target = "original_barcodes")
 ```
 
+#### Add chrM gene counts
+```{r chrM UMIs}
+stm("Adding chrM count metadata")
+
+h5_list <- h5_list_add_mito_umis(h5_list)
+```
+
 #### Split list based on hashes
 ```{r Split H5 Lists}
 stm("Splitting HDF5 based on Hash Category Table")
@@ -273,24 +280,28 @@ meta <- h5_list_cell_metadata(h5_list)
 ```{r Read UMI Gene Stats}
 overview_stats <- data.frame(statistic = c("N Reads",
                                            "N UMIs",
+                                           "N Mito. UMIs",
                                            "N Genes",
                                            "Reads per UMI",
                                            "UMIs per Gene",
                                            "Reads per Gene"),
                              q_25 = c(quantile(meta$n_reads, 0.25),
                                       quantile(meta$n_umis,  0.25),
+                                      quantile(meta$n_mito_umis, 0.25),
                                       quantile(meta$n_genes, 0.25),
                                       quantile(meta$n_reads/meta$n_umis, 0.25, na.rm = TRUE),
                                       quantile(meta$n_umis/meta$n_genes, 0.25, na.rm = TRUE),
                                       quantile(meta$n_reads/meta$n_genes, 0.25, na.rm = TRUE)),
                              median = c(quantile(meta$n_reads, 0.5),
                                         quantile(meta$n_umis,  0.50),
+                                        quantile(meta$n_mito_umis, 0.50),
                                         quantile(meta$n_genes, 0.50),
                                         quantile(meta$n_reads/meta$n_umis, 0.50, na.rm = TRUE),
                                         quantile(meta$n_umis/meta$n_genes, 0.50, na.rm = TRUE),
                                         quantile(meta$n_reads/meta$n_genes, 0.50, na.rm = TRUE)),
                              q_75 = c(quantile(meta$n_reads, 0.75),
                                       quantile(meta$n_umis,  0.75),
+                                      quantile(meta$n_mito_umis, 0.25),
                                       quantile(meta$n_genes, 0.75),
                                       quantile(meta$n_reads/meta$n_umis, 0.75, na.rm = TRUE),
                                       quantile(meta$n_umis/meta$n_genes, 0.75, na.rm = TRUE),
