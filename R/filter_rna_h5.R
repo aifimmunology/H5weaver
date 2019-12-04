@@ -132,7 +132,8 @@ h5_list_add_mito_umis <- function(h5_list) {
 
   common_mito_ids <- rownames(h5_list$matrix_dgCMatrix)[h5_list$matrix$features$name %in% common_mito_genes]
 
-  mito_umis <- colSums(h5_list$matrix_dgCMatrix[common_mito_ids,])
+  mito_umis <- Matrix::colSums(h5_list$matrix_dgCMatrix[common_mito_ids,])
+  names(mito_umis) <- NULL
 
   h5_list <- set_list_path(h5_list,
                            "/matrix/observations/n_mito_umis",
