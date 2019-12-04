@@ -124,7 +124,7 @@ h5_list_add_mito_umis <- function(h5_list) {
     reconvert_matrix <- TRUE
   }
 
-  common_mito_genes <- intersect(chrM_genes$id, h5_list$matrix$features$id)
+  common_mito_genes <- intersect(chrM_genes$name, h5_list$matrix$features$name)
 
   if(length(common_mito_genes) == 0) {
     stop("No Mitochondrial Genes found in h5_list")

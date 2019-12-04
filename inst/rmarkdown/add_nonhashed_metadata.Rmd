@@ -166,6 +166,12 @@ h5_list <- add_well_metadata(h5_list,
                              well_id = in_well)
 ```
 
+#### Add chrM gene counts
+```{r chrM UMIs}
+stm("Adding chrM count metadata")
+
+h5_list <- h5_list_add_mito_umis(h5_list)
+```
 
 [Return to Contents](#contents)
 

@@ -29,5 +29,5 @@ fwrite(gene_meta,
 
 chrM_genes <- gene_meta[chr == "chrMT",]
 
-fwrite(gene_meta,
+fwrite(chrM_genes,
        "inst/reference/GRCh38_10x_chrM_gene_metadata.csv.gz")
