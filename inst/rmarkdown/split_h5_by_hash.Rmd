@@ -460,9 +460,9 @@ suppressWarnings(
 ```{r Category Fraction Barplot}
 plot_df <- hto_count_stats
 plot_df$cells_max <- cumsum(plot_df$frac_cells)
-plot_df$cells_min <- shift(plot_df$cells_max, type = "lag", fill = 0)
+plot_df$cells_min <- data.table::shift(plot_df$cells_max, type = "lag", fill = 0)
 plot_df$reads_max <- cumsum(plot_df$frac_all_aligned_reads)
-plot_df$reads_min <- shift(plot_df$reads_max, type = "lag", fill = 0)
+plot_df$reads_min <- data.table::shift(plot_df$reads_max, type = "lag", fill = 0)
 
 hto_category_fraction_barplot <- ggplot() +
   geom_rect(data = plot_df,
