@@ -114,8 +114,8 @@ h5_list_add_mito_umis <- function(h5_list) {
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("matrix" %in% names(h5_list))
 
-  chrM_genes <- fread(system.file("inst/reference/GRCh38_10x_chrM_gene_metadata.csv.gz"),
-                      package = "H5weaver")
+  chrM_genes <- fread(system.file("inst/reference/GRCh38_10x_chrM_gene_metadata.csv.gz",
+                                  package = "H5weaver"))
 
   reconvert_matrix <- FALSE
   if(!"matrix_dgCMatrix" %in% names(h5_list)) {
