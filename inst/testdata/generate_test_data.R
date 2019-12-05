@@ -1,14 +1,19 @@
 library(rhdf5)
 library(H5weaver)
 
-well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/filtered_feature_bc_matrix.h5"
-well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/filtered_feature_bc_matrix.h5"
+chrM_genes <- fread(system.file("reference/GRCh38_10x_chrM_gene_metadata.csv.gz",
+                                package = "H5weaver"))
+
+well1_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W1/filtered_feature_bc_matrix.h5"
+well2_h5 <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W3/filtered_feature_bc_matrix.h5"
+
+## Well 1 .h5 file
 
 well1_list <- h5dump(well1_h5)
 well1_list <- h5_list_convert_to_dgCMatrix(well1_list)
 
 set.seed(3030)
-keep_genes <- c(sample(well1_list$matrix$features$name, 1000))
+keep_genes <- c(sample(well1_list$matrix$features$name, 1000), chrM_genes$name)
 
 well1_keep <- match(keep_genes, well1_list$matrix$features$name)
 
@@ -21,10 +26,13 @@ well1_list$matrix$features$feature_type <- well1_list$matrix$features$feature_ty
 well1_list <- h5_list_convert_from_dgCMatrix(well1_list)
 
 write_h5_list(well1_list,
-              "inst/testdata/well1.h5")
+              "inst/testdata/well1.h5",
+              overwrite = TRUE)
 h5closeAll()
 
-well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W4-01-RNA/molecule_info.h5"
+## Well 1 Molecule Info
+
+well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W1/molecule_info.h5"
 
 well1_keep_bc <- sub("-1","",h5read("inst/testdata/well1.h5","/matrix/barcodes"))
 
@@ -49,7 +57,30 @@ write_h5_list(well1_list_out,
               overwrite = TRUE)
 h5closeAll()
 
-well2_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/PB7626W6-01-RNA/molecule_info.h5"
+
+## Well 2 .h5
+
+well2_list <- h5dump(well2_h5)
+well2_list <- h5_list_convert_to_dgCMatrix(well2_list)
+
+well2_keep <- match(keep_genes, well2_list$matrix$features$name)
+
+well2_list$matrix_dgCMatrix <- well2_list$matrix_dgCMatrix[well2_keep,]
+
+well2_list$matrix$features$name <- well2_list$matrix$features$name[well2_keep]
+well2_list$matrix$features$genome <- well2_list$matrix$features$genome[well2_keep]
+well2_list$matrix$features$feature_type <- well2_list$matrix$features$feature_type[well2_keep]
+
+well2_list <- h5_list_convert_from_dgCMatrix(well2_list)
+
+write_h5_list(well2_list,
+              "inst/testdata/well2.h5",
+              overwrite = TRUE)
+h5closeAll()
+
+# Well 2 Molecule Info
+
+well2_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W3/molecule_info.h5"
 
 well2_keep_bc <- sub("-1","",h5read("inst/testdata/well2.h5","/matrix/barcodes"))
 
@@ -73,6 +104,8 @@ write_h5_list(well2_list_out,
               "inst/testdata/well2_molecule_info.h5",
               overwrite = TRUE)
 h5closeAll()
+
+## Well 1 HTO data
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_category_table.csv.gz",
           "inst/testdata/well1_category_table.csv.gz")
@@ -103,22 +136,7 @@ fwrite(well1_tbl,
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W4-01-HTO_S21/hto_count_matrix.csv.gz",
           "inst/testdata/well1_count_matrix.csv.gz")
 
-well2_list <- h5dump(well2_h5)
-well2_list <- h5_list_convert_to_dgCMatrix(well2_list)
-
-well2_keep <- match(keep_genes, well2_list$matrix$features$name)
-
-well2_list$matrix_dgCMatrix <- well2_list$matrix_dgCMatrix[well2_keep,]
-
-well2_list$matrix$features$name <- well2_list$matrix$features$name[well2_keep]
-well2_list$matrix$features$genome <- well2_list$matrix$features$genome[well2_keep]
-well2_list$matrix$features$feature_type <- well2_list$matrix$features$feature_type[well2_keep]
-
-well2_list <- h5_list_convert_from_dgCMatrix(well2_list)
-
-write_h5_list(well2_list,
-              "inst/testdata/well2.h5")
-h5closeAll()
+## Well 2 HTO data
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W6-01-HTO_S23/hto_category_table.csv.gz",
           "inst/testdata/well2_category_table.csv.gz")
@@ -148,6 +166,8 @@ fwrite(well2_tbl,
 
 file.copy("G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/output/hto_results/PB7626W6-01-HTO_S23/hto_count_matrix.csv.gz",
           "inst/testdata/well2_count_matrix.csv.gz")
+
+## Well 1 split data
 
 dir.create("inst/testdata/splitdata/")
 

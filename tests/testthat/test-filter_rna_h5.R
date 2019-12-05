@@ -98,6 +98,19 @@ test_that(
 )
 
 test_that(
+  "h5_list_add_mito_umis() adds mitochondrial UMI counts",
+  {
+    h5l_with_mito <- h5_list_add_mito_umis(test_h5l)
+
+    expect_true(class(h5l_with_mito) == "list")
+    expect_true("observations" %in% names(h5l_with_mito$matrix))
+    expect_true("n_mito_umis" %in% names(h5l_with_mito$matrix$observations))
+    expect_true(class(h5l_with_mito$matrix$observations$n_mito_umis) == "numeric")
+    expect_false("matrix_dgCMatrix" %in% names(h5l_with_mito))
+  }
+)
+
+test_that(
   "h5_list_convert_to_dgCMatrix() converts values from h5dump() to a sparse matrix",
   {
     to_mat <- h5_list_convert_to_dgCMatrix(test_h5l,

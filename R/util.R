@@ -137,6 +137,7 @@ h5_list_cell_metadata <- function(h5_list) {
   meta
 }
 
+
 #' Transpose an h5_list object
 #'
 #' This will transpose sparse matrices stored in an h5_list object, and retain the association of observations with columns and features with rows.
