@@ -30,6 +30,11 @@ write_h5_list(well1_list,
               overwrite = TRUE)
 h5closeAll()
 
+## Well1 metrics_summary.csv
+
+file.copy(file.path(sub("filtered_feature_bc_matrix.h5","metrics_summary.csv",well1_h5)),
+          "inst/testdata/well1_metrics_summary.csv")
+
 ## Well 1 Molecule Info
 
 well1_mol <- "G:/Shared drives/Imm - Molecular Biology/Analysis/pipeline_longitudinal_pilot/data/cellranger/X001-RP1C2W1/molecule_info.h5"
