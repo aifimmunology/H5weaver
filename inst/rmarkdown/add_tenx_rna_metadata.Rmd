@@ -288,7 +288,8 @@ qc_well_metrics <- data.frame(tenx_metric = names(well_metrics),
 qc_well_metrics$value[qc_well_metrics$tenx_metric == "number_of_reads"] <- as.numeric(qc_well_metrics$value[qc_well_metrics$tenx_metric == "number_of_reads"] / 1e6)
 qc_well_metrics$tenx_metric[qc_well_metrics$tenx_metric == "number_of_reads"] <- "millions_of_reads"
 
-qc_list$well_metrics <- qc_well_metrics
+qc_list$well_metrics <- split(qc_well_metrics$value, 1:nrow(qc_well_metrics))
+names(qc_list$well_metrics) <- qc_well_metrics$tenx_metric
 
 qc_table(qc_well_metrics)
 ```
@@ -332,7 +333,13 @@ overview_stats$q_25 <- round(overview_stats$q_25, 2)
 overview_stats$median <- round(overview_stats$median, 2)
 overview_stats$q_75 <- round(overview_stats$q_75, 2)
 
-qc_list$well_overview_stats <- overview_stats
+qc_list$well_count_stats <- lapply(1:nrow(overview_stats),
+                                      function(x) {
+                                        list(q_25 = overview_stats$q_25[x],
+                                             median = overview_stats$median[x],
+                                             q_75 = overview_stats$q_75[x])
+                                      })
+names(qc_list$well_count_stats) <- tolower(gsub("[\\. ]+", "_", overview_stats$statistic))
 
 qc_table(overview_stats)
 ```
@@ -431,11 +438,13 @@ suppressWarnings(
 ```{r Save QC JSON}
 stm(paste0("Writing JSON to ", out_json))
 
-qc_list_json <- toJSON(qc_list,
-                       pretty = TRUE)
+qc_list_json <- jsonlite::toJSON(qc_list,
+                                 auto_unbox = TRUE,
+                                 pretty = TRUE)
 
 writeLines(qc_list_json,
            out_json)
+
 ```
 
 [Return to Contents](#contents)
