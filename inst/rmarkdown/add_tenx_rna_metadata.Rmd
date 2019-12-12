@@ -121,6 +121,8 @@ ss <- read.csv(in_key)
 
 if("HashTag" %in% names(ss)) {
   out_h5 <- file.path(out_dir, paste0(in_well, ".h5"))
+  out_json <- sub(".h5$","_well_metrics.json",out_h5)
+
 } else if("WellID" %in% names(ss)) {
   pool_id <- sub("C.+","",well_id)
   pool_id <- sub("-[A|H|R]P","-P", well_id)
@@ -133,9 +135,9 @@ if("HashTag" %in% names(ss)) {
                            rep(pbc_sample_id, n_cells))
   
   out_h5 <- file.path(out_dir, paste0(pool_id, "_", pbmc_sample_id, ".h5"))
+  out_json <- file.path(out_dir, paste0(in_well,"_well_metrics.json"))
 }
 
-out_json <- sub(".h5$","_well_metrics.json",out_h5)
 
 stm(paste0("OUT H5 file         : ", out_h5))
 stm(paste0("OUT JSON file       : ", out_json))
