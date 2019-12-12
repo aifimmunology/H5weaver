@@ -11,7 +11,7 @@ output:
 params:
   in_h5: NULL
   in_mol: NULL
-  in_ss: NULL
+  in_key: NULL
   in_well: NULL
   out_dir: NULL
 ---
@@ -66,13 +66,13 @@ stm("Starting .h5 metadata analysis")
 if(is.null(params$in_h5)) {
   in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
   in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
-  in_ss <- system.file("reference/SampleSheet_fallback.csv", package = "H5weaver")
+  in_key <- system.file("reference/SampleSheet_fallback.csv", package = "H5weaver")
   in_well <- "B000-P0C0W0"
   out_dir <- tempdir()
 } else {
   in_h5 <- params$in_h5
   in_mol <- params$in_mol
-  in_ss <- params$in_ss
+  in_key <- params$in_key
   in_well <- params$in_well
   out_dir <- params$out_dir
 }
@@ -109,7 +109,7 @@ h5_list <- h5dump(in_h5)
 
 #### Load SampleSheet
 ```{r Load SampleSheet}
-ss <- read.csv(in_ss)
+ss <- read.csv(in_key)
 
 if("HashTag" %in% names(ss)) {
   out_h5 <- file.path(out_dir, paste0(in_well, ".h5"))
