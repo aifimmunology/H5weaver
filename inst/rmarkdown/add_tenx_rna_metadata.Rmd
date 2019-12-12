@@ -11,6 +11,7 @@ output:
 params:
   in_h5: NULL
   in_mol: NULL
+  in_sum: NULL
   in_key: NULL
   in_well: NULL
   out_dir: NULL
@@ -28,9 +29,11 @@ params:
 
 #### [QC Metrics and Plots](#qc_metrics)
 - [Well-Based QC](#well_qc)
+  - [10x Genomics Metrics](#well_metrics)
   - [Read/UMI/Gene Stats](#rug_stats)
   - [Read/UMI/Gene Histograms](#rug_hists)
   - [Read/UMI/Gene Scatters](#rug_scatters)
+- [Write QC JSON](#json_out)
 
 #### [Session Info](#session_info)
 
@@ -54,6 +57,7 @@ quiet_library(H5weaver)
 quiet_library(Matrix)
 quiet_library(ggplot2)
 quiet_library(cowplot)
+quiet_library(jsonlite)
 ```
 
 Declaring start
@@ -66,12 +70,14 @@ stm("Starting .h5 metadata analysis")
 if(is.null(params$in_h5)) {
   in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
   in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
+  in_sum <- system.file("testdata/well1_metrics_summary.csv", package = "H5weaver")
   in_key <- system.file("reference/SampleSheet_fallback.csv", package = "H5weaver")
   in_well <- "B000-P0C0W0"
   out_dir <- tempdir()
 } else {
   in_h5 <- params$in_h5
   in_mol <- params$in_mol
+  in_sum <- params$in_sum
   in_key <- params$in_key
   in_well <- params$in_well
   out_dir <- params$out_dir
@@ -79,7 +85,8 @@ if(is.null(params$in_h5)) {
 
 stm(paste0("IN  H5 file         : ", in_h5))
 stm(paste0("IN  Mol Info H5     : ", in_mol))
-stm(paste0("IN  SampleSheet     : ", in_ss))
+stm(paste0("IN  Metrics Summary : ", in_sum))
+stm(paste0("IN  SampleSheet     : ", in_key))
 stm(paste0("IN  Well ID         : ", in_well))
 stm(paste0("OUT H5 directory    : ", out_dir))
 ```
@@ -89,7 +96,8 @@ stm(paste0("OUT H5 directory    : ", out_dir))
 print(c(
   paste0("IN  H5 file         : ", in_h5),
   paste0("IN  Mol Info H5     : ", in_mol),
-  paste0("IN  SampleSheet     : ", in_ss),
+  paste0("IN  Metrics Summary : ", in_sum),
+  paste0("IN  SampleSheet     : ", in_key),
   paste0("IN  Well ID         : ", in_well),
   paste0("OUT H5 directory    : ", out_dir)
 ))
@@ -127,7 +135,15 @@ if("HashTag" %in% names(ss)) {
   out_h5 <- file.path(out_dir, paste0(pool_id, "_", pbmc_sample_id, ".h5"))
 }
 
+out_json <- sub(".h5$","_well_metrics.json",out_h5)
+
 stm(paste0("OUT H5 file         : ", out_h5))
+stm(paste0("OUT JSON file       : ", out_json))
+
+print(c(
+  paste0("OUT H5 file         : ", out_h5),
+  paste0("OUT JSON file       : ", out_json)
+))
 ```
 
 #### Read molecule info to get read counts per cell
@@ -205,6 +221,22 @@ stm("Adding chrM count metadata")
 h5_list <- h5_list_add_mito_umis(h5_list)
 ```
 
+#### Add Well Metrics
+```{r Add Well Metrics}
+well_metrics <- read_tenx_metrics(in_sum)
+
+well_metrics <- as.list(well_metrics)
+
+h5_list <- set_list_path(h5_list,
+                         "/well",
+                         well_metrics)
+
+h5_list <- set_list_path(h5_list,
+                         "/well/well_id",
+                         in_well)
+```
+
+
 [Return to Contents](#contents)
 
 <a id="data_output"></a>
@@ -230,6 +262,13 @@ Extract metadata for plotting
 ```{r Assemble Metadata}
 stm("Generating tables and plots for report")
 meta <- h5_list_cell_metadata(h5_list)
+
+qc_list <- list(report_type = "add_tenx_rna_metadata",
+                report_datetime = as.character(start_time),
+                report_uuid = ids::uuid(use_time = TRUE),
+                package = "H5weaver",
+                package_version = sessionInfo()$otherPkgs$H5weaver$Version,
+                well_id = in_well)
 ```
 
 [Return to Contents](#contents)
@@ -238,11 +277,29 @@ meta <- h5_list_cell_metadata(h5_list)
 
 ### Well QC
 
+<a id="well_metrics"></a>
+
+#### 10x Genomics Mapping Metrics
+```{r Well Metrics}
+qc_well_metrics <- data.frame(tenx_metric = names(well_metrics),
+                              value = as.vector(unlist(well_metrics)),
+                              stringsAsFactors = FALSE)
+
+qc_well_metrics$value[qc_well_metrics$tenx_metric == "number_of_reads"] <- as.numeric(qc_well_metrics$value[qc_well_metrics$tenx_metric == "number_of_reads"] / 1e6)
+qc_well_metrics$tenx_metric[qc_well_metrics$tenx_metric == "number_of_reads"] <- "millions_of_reads"
+
+qc_list$well_metrics <- qc_well_metrics
+
+qc_table(qc_well_metrics)
+```
+
+[Return to Contents](#contents)
+
 <a id="rug_stats"></a>
 
 #### Well Read/UMI/Gene Summary Stats
 ```{r Read UMI Gene Stats}
-overview_stats <- data.frame(statistic = c("N Reads",
+overview_stats <- data.frame(statistic = c("N Mapped Reads",
                                            "N UMIs",
                                            "N Mito. UMIs",
                                            "N Genes",
@@ -274,6 +331,8 @@ overview_stats <- data.frame(statistic = c("N Reads",
 overview_stats$q_25 <- round(overview_stats$q_25, 2)
 overview_stats$median <- round(overview_stats$median, 2)
 overview_stats$q_75 <- round(overview_stats$q_75, 2)
+
+qc_list$well_overview_stats <- overview_stats
 
 qc_table(overview_stats)
 ```
@@ -361,6 +420,22 @@ genes_reads_scatter <- qc_scatter_plot(meta,
 suppressWarnings(
   genes_reads_scatter
 )
+```
+
+[Return to Contents](#contents)
+
+<a id="json_out"></a>
+
+### Write QC JSON
+
+```{r Save QC JSON}
+stm(paste0("Writing JSON to ", out_json))
+
+qc_list_json <- toJSON(qc_list,
+                       pretty = TRUE)
+
+writeLines(qc_list_json,
+           out_json)
 ```
 
 [Return to Contents](#contents)
