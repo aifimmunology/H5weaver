@@ -83,6 +83,8 @@ if(is.null(params$in_h5)) {
   out_dir <- params$out_dir
 }
 
+in_well <- sub("-[AHR]P","-P",in_well)
+
 stm(paste0("IN  H5 file         : ", in_h5))
 stm(paste0("IN  Mol Info H5     : ", in_mol))
 stm(paste0("IN  Metrics Summary : ", in_sum))
