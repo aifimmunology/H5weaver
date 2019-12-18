@@ -573,9 +573,9 @@ suppressWarnings(
 ```{r Save QC JSON}
 stm(paste0("Writing JSON to ", out_json))
 
-qc_list_json <- toJSON(qc_list,
-                       auto_unbox = TRUE,
-                       pretty = TRUE)
+qc_list_json <- jsonlite::toJSON(qc_list,
+                                 auto_unbox = TRUE,
+                                 pretty = TRUE)
 
 writeLines(qc_list_json,
            out_json)
