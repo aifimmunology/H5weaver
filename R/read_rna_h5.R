@@ -1,20 +1,29 @@
 #' Read the /matrix from a .h5 file as a sparse matrix
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target a character object specifying the target matrix within the file. Default is "matrix".
 #' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
-#' @param sample_names a character object specifying which values to use for col.names. If "barcodes", will use /matrix/barcodes. Other values will be read from /matrix/observations/
+#' @param sample_names a character object specifying which values to use for col.names. If "barcodes", will use /target/barcodes. Other values will be read from /target/observations/
 #' @param index1 a logical object specifying whether index vectors should start with 0 (FALSE) or 1 (TRUE). Default is TRUE.
 #'
 #' @return a dgCMatrix of gene expression values.
 #' @export
 #'
 read_h5_dgCMatrix <- function(h5_file,
+                              target = "matrix",
                               feature_names = "id",
                               sample_names = "barcodes",
                               index1 = TRUE) {
 
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
+
+  assertthat::assert_that(is.character(target))
+  assertthat::assert_that(length(target) == 1)
+
+  if(grepl("^/",target)) {
+    target <- sub("^/","",target)
+  }
 
   assertthat::assert_that(is.character(feature_names))
   assertthat::assert_that(length(feature_names) == 1)
@@ -38,33 +47,32 @@ read_h5_dgCMatrix <- function(h5_file,
   h5_handle <- H5Fopen(h5_file)
 
   if(sample_names == "barcodes") {
-    colname_target <- "/matrix/barcodes"
+    colname_target <- paste0("/", target, "/barcodes")
   } else {
-    colname_target <- paste0("/matrix/observations/", sample_names)
+    colname_target <- paste0("/", target, "/observations/", sample_names)
   }
 
   if(index1) {
-    mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
-                        i = h5read(h5_handle, "/matrix/indices") + 1,
-                        p = h5read(h5_handle, "/matrix/indptr"),
+    mat <- sparseMatrix(x = h5read(h5_handle, paste0("/",target,"/data")),
+                        i = h5read(h5_handle, paste0("/",target,"/indices")) + 1,
+                        p = h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
-                        dims = h5read(h5_handle, "/matrix/shape"),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
+                        dims = h5read(h5_handle, paste0("/",target,"/shape")),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/id"))),
                                         as.vector(h5read(h5_handle, colname_target))
                         )
     )
   } else {
-    mat <- sparseMatrix(x = h5read(h5_handle, "/matrix/data"),
-                        i = h5read(h5_handle, "/matrix/indices"),
-                        p = h5read(h5_handle, "/matrix/indptr"),
+    mat <- sparseMatrix(x = h5read(h5_handle, paste0("/",target,"/data")),
+                        i = h5read(h5_handle, paste0("/",target,"/indices")),
+                        p = h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
-                        dims = h5read(h5_handle, "/matrix/shape"),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/matrix/features/", feature_names))),
+                        dims = h5read(h5_handle, paste0("/",target,"/shape")),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/id"))),
                                         as.vector(h5read(h5_handle, colname_target))
                         )
     )
   }
-
 
   mat
 }
@@ -200,6 +208,28 @@ h5ls <- function(...) {
   df <- df[,c("full_name","group","name","otype","dclass","dim")]
 
   df
+}
+
+#' Check if an object exists in an HDF5 file
+#'
+#' @param h5_file A character object specifying the path to a .h5 file
+#' @param target A character object specifying the name of the object to check (e.g. "/matix/features/id")
+#'
+#' @return a logical value
+#' @export
+h5exists <- function(h5_file,
+                     target) {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+  assertthat::assert_that(file.exists(h5_file))
+
+  assertthat::assert_that(is.character(target))
+  assertthat::assert_that(length(target) == 1)
+
+  df <- H5weaver::h5ls(h5_file)
+
+  target %in% df$full_name
 }
 
 #' Convert all 1D Arrays in a list object to vectors recursively
