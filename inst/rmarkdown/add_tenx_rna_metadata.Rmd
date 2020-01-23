@@ -125,8 +125,8 @@ if(!file.exists(in_sum)) {
   stm(paste0("ERROR: Cannot find IN Metrics Summary file:", in_h5))
   stop()
 }
-if(!file.exists(in_h5)) {
-  stm(paste0("ERROR: Cannot find IN SampleSheet file:", in_h5))
+if(!file.exists(in_key)) {
+  stm(paste0("ERROR: Cannot find IN SampleSheet file:", in_key))
   stop()
 }
 ```
