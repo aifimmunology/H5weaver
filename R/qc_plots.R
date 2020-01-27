@@ -125,7 +125,7 @@ qc_frac_hist_plot <- function(meta,
                         color = "#000000") +
     ggplot2::geom_text(ggplot2::aes(x = median(meta[[column]]) * .95,
                                     y = 1450,
-                                    label = paste0("median: ", median(meta[[column]]))),
+                                    label = paste0("median: ", round(median(meta[[column]])), 3)),
                        color = "#000000",
                        hjust = 1,
                        vjust = 1) +
