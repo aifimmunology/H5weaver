@@ -249,7 +249,7 @@ qc_scatter_plot <- function(meta,
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
   } else {
     p <- p +
-      ggplot2::scale_y_continous(name_y)
+      ggplot2::scale_y_continuous(name_y)
   }
 
   p
