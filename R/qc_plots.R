@@ -134,7 +134,7 @@ qc_frac_hist_plot <- function(meta,
                         color = "#808080") +
     ggplot2::geom_text(ggplot2::aes(x = target * 1.05,
                                     y = 1450,
-                                    label = paste0(target / 1e3, "k")),
+                                    label = target),
                        color = "#808080",
                        hjust = 0,
                        vjust = 1) +
