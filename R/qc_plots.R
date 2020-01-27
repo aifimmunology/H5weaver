@@ -146,7 +146,7 @@ qc_frac_hist_plot <- function(meta,
 
   p <- p +
     ggplot2::scale_x_continuous(name_x,
-                                limits = c(0, 1),
+                                limits = c(-.02, 1.02),
                                 breaks = seq(0, 1, by = 0.1))
 
   p
