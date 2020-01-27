@@ -82,6 +82,76 @@ qc_hist_plot <- function(meta,
   p
 }
 
+#' Generate a QC Histogram Plot for a single fractional metric
+#'
+#' @param meta A data.frame containing metadata
+#' @param column A character object specifying the metadata to display
+#' @param name_x A character object specifying a name to display on the x-axis
+#' @param fill A character object specifying the color to use for for the histogram. Default is "dodgerblue".
+#' @param target A numeric value for a target line to display on the x-axis. Default is 0.5,
+#' @param y_max A numeric value for the maximum value on the y-axis. Default is 2e3.
+#'
+#' @return a ggplot2 plot object
+#' @export
+qc_frac_hist_plot <- function(meta,
+                              column = "n_reads",
+                              name_x = "N Reads per Cell",
+                              fill = "dodgerblue",
+                              target = 0.5,
+                              y_max = 2e3) {
+
+
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(column) == "character")
+  assertthat::assert_that(length(column) == 1)
+  assertthat::assert_that(column %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(fill) == "character")
+  assertthat::assert_that(length(fill) == 1)
+  assertthat::assert_that(class(target) == "numeric")
+  assertthat::assert_that(length(target) == 1)
+  assertthat::assert_that(class(y_max) == "numeric")
+  assertthat::assert_that(length(y_max) == 1)
+
+  binwidth <- 0.02
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_histogram(ggplot2::aes(x = meta[[column]]),
+                            binwidth = binwidth,
+                            fill = fill) +
+    ggplot2::geom_vline(ggplot2::aes(xintercept = median(meta[[column]])),
+                        linetype = "dashed",
+                        color = "#000000") +
+    ggplot2::geom_text(ggplot2::aes(x = median(meta[[column]]) * .95,
+                                    y = 1450,
+                                    label = paste0("median: ", median(meta[[column]]))),
+                       color = "#000000",
+                       hjust = 1,
+                       vjust = 1) +
+    ggplot2::geom_vline(ggplot2::aes(xintercept = target),
+                        linetype = "dashed",
+                        color = "#808080") +
+    ggplot2::geom_text(ggplot2::aes(x = target * 1.05,
+                                    y = 1450,
+                                    label = paste0(target / 1e3, "k")),
+                       color = "#808080",
+                       hjust = 0,
+                       vjust = 1) +
+    ggplot2::scale_color_identity() +
+    ggplot2::scale_fill_identity() +
+    ggplot2::scale_y_continuous("N Cells", limits = c(0, y_max)) +
+    ggplot2::theme_bw()
+
+
+  p <- p +
+    ggplot2::scale_x_continuous(name_x,
+                                limits = c(0, 1),
+                                breaks = seq(0, 1, by = 0.1))
+
+  p
+}
+
 #' Generate a QC Scatter Plot for a pair of metrics
 #'
 #' @param meta A data.frame containing metadata
