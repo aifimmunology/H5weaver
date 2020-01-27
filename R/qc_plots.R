@@ -160,7 +160,9 @@ qc_frac_hist_plot <- function(meta,
 #' @param column_y A character object specifying the metadata to display on the y-axis
 #' @param name_y A character object specifying a name to display on the y-axis
 #' @param log_x A logical indicating whether or not to log10-scale the x-axis. Default is TRUE.
+#' @param frac_x A logical indicating whether or not to scale the x-axis between 0 and 1. Default is FALSE
 #' @param log_y A logical indicating whether or not to log10-scale the y-axis. Default is TRUE.
+#' @param frac_y A logical indicating whether or not to scale the y-axis between 0 and 1. Default is FALSE
 #' @param show_targets A logical indicating whether or not to plot lines displaying ratios of values. Default is TRUE.
 #' @param color A character object specifying the color to use for for the points. Default is "dodgerblue".
 #'
@@ -172,7 +174,9 @@ qc_scatter_plot <- function(meta,
                             column_y = "n_umis",
                             name_y = "N UMIs per Cell",
                             log_x = TRUE,
+                            frac_x = FALSE,
                             log_y = TRUE,
+                            frac_y = FALSE,
                             show_targets = TRUE,
                             color = "dodgerblue") {
 
@@ -210,18 +214,18 @@ qc_scatter_plot <- function(meta,
                             ggplot2::aes(x = x, xend = xend,
                                          y = y, yend = yend,
                                          group = group),
-                            linetype = "dashed")
+                            linetype = "dashed") +
+      ggplot2::geom_text(data = target_lines,
+                         ggplot2::aes(x = xend * 0.9,
+                                      y = yend,
+                                      label = group),
+                         angle = 45,
+                         hjust = 1,
+                         vjust = 0,
+                         size = 3)
   }
 
   p <- p +
-    ggplot2::geom_text(data = target_lines,
-                       ggplot2::aes(x = xend * 0.9,
-                                    y = yend,
-                                    label = group),
-                       angle = 45,
-                       hjust = 1,
-                       vjust = 0,
-                       size = 3) +
     ggplot2::geom_point(ggplot2::aes(x = meta[[column_x]],
                                      y = meta[[column_y]]),
                         alpha = 0.2,
@@ -236,6 +240,11 @@ qc_scatter_plot <- function(meta,
                              limits = c(1e2, 2.5e5),
                              breaks = c(1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5),
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
+  } else if(frac_x) {
+    p <- p +
+      ggplot2::scale_x_continuous(name_x,
+                             limits = c(0, 1),
+                             breaks = seq(0, 1, by = 0.1))
   } else {
     p <- p +
       ggplot2::scale_x_continuous(name_x)
@@ -247,6 +256,11 @@ qc_scatter_plot <- function(meta,
                              limits = c(1e2, 2.5e5),
                              breaks = c(1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5),
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
+  } else if(frac_y) {
+    p <- p +
+      ggplot2::scale_y_continuous(name_y,
+                                  limits = c(0, 1),
+                                  breaks = seq(0, 1, by = 0.1))
   } else {
     p <- p +
       ggplot2::scale_y_continuous(name_y)
