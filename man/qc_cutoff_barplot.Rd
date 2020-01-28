@@ -5,7 +5,7 @@
 \title{Generate a QC Barplot for a metric at multiple cutoffs}
 \usage{
 qc_cutoff_barplot(meta, column_x = "n_umis", name_x = "N UMIs",
-  cutoffs = c(500, 750, 1000), fill = "purple")
+  cutoffs = c(500, 750, 1000), max_y = 30000, fill = "purple")
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}
@@ -15,6 +15,8 @@ qc_cutoff_barplot(meta, column_x = "n_umis", name_x = "N UMIs",
 \item{name_x}{A character object specifying a name to display on the x-axis}
 
 \item{cutoffs}{A numeric vector specifying one or more cutoffs to use. Default is c(500, 750, 1000).}
+
+\item{max_y}{A numeric value specifying the maximum value to use for the y-axis. Default is 3e4.}
 
 \item{fill}{A character object specifying the fill color to use for for the violins. Default is "purple".}
 }

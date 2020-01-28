@@ -362,6 +362,7 @@ qc_violin_plot <- function(meta,
 #' @param column_x A character object specifying the metadata to use plotting
 #' @param name_x A character object specifying a name to display on the x-axis
 #' @param cutoffs A numeric vector specifying one or more cutoffs to use. Default is c(500, 750, 1000).
+#' @param max_y A numeric value specifying the maximum value to use for the y-axis. Default is 3e4.
 #' @param fill A character object specifying the fill color to use for for the violins. Default is "purple".
 #'
 #' @return a ggplot2 plot object
@@ -370,6 +371,7 @@ qc_cutoff_barplot <- function(meta,
                               column_x = "n_umis",
                               name_x = "N UMIs",
                               cutoffs = c(500, 750, 1000),
+                              max_y = 3e4,
                               fill = "purple") {
 
   assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
@@ -399,7 +401,7 @@ qc_cutoff_barplot <- function(meta,
                       fill = fill) +
     ggplot2::scale_fill_identity() +
     ggplot2::scale_y_continuous("N Cells",
-                                limits = c(0, 3e4),
+                                limits = c(0, max_y),
                                 expand = c(0, 0)) +
     ggplot2::scale_x_discrete(paste0(name_x, " Cutoff")) +
     ggplot2::theme_bw()
