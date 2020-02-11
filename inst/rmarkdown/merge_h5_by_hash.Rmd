@@ -138,7 +138,12 @@ for(i in seq_along(unique_hashes)) {
   stm(paste0("Merging for hash ", current_hash))
   current_files <- in_file_paths[in_file_hashes == current_hash]
   for(f in current_files) {
-    stm(paste0("IN  H5 file         : ", f))
+    if(file.exists(f)) {
+      stm(paste0("IN  H5 file         : ", f))
+    } else {
+      stm(paste0("MISSING  H5 file    : ", f))
+      current_files <- current_files[current_files != f]
+    }
   }
   
   h5_ll <- lapply(current_files,
