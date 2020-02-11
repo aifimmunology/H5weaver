@@ -19,7 +19,7 @@ params:
 
 <a id="contents"></a>
 
-## Contents'
+## Contents
 
 #### [Data Processing](#data_processing)
 - [Session Preparation](#session_preparation)

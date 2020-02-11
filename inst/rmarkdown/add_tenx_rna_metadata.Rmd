@@ -85,6 +85,12 @@ if(is.null(params$in_h5)) {
 
 in_well <- sub("-[AHR]P","-P",in_well)
 
+# Check Well ID format
+if(!grepl("^[A-Z][0-9]{3}-P[0-9]C[0-9]W[0-9]$", in_well)) {
+  stm(paste0("ERROR: Input Well ID is not in expected format, e.g. B###-P#C#W# :", in_h5))
+  stop()
+}
+
 stm(paste0("IN  H5 file         : ", in_h5))
 stm(paste0("IN  Mol Info H5     : ", in_mol))
 stm(paste0("IN  Metrics Summary : ", in_sum))
@@ -105,6 +111,36 @@ print(c(
 ))
 ```
 
+#### Check Input Files
+```{r Check Inputs}
+if(!file.exists(in_h5)) {
+  stm(paste0("ERROR: Cannot find IN H5 file:", in_h5))
+  stop()
+}
+if(!file.exists(in_mol)) {
+  stm(paste0("ERROR: Cannot find IN Mol Info H5 file:", in_mol))
+  stop()
+}
+if(!file.exists(in_sum)) {
+  stm(paste0("ERROR: Cannot find IN Metrics Summary file:", in_sum))
+  stop()
+}
+if(!file.exists(in_key)) {
+  stm(paste0("ERROR: Cannot find IN SampleSheet file:", in_key))
+  stop()
+}
+```
+
+#### Create out directory if missing
+```{r Create Out Dir}
+if(!dir.exists(out_dir)) {
+  stm(paste0("Creating Output Directory: ",out_dir))
+  dir.create(out_dir, 
+             recursive = TRUE)
+}
+```
+
+
 [Return to Contents](#contents)
 
 <a id="load_inputs"></a>
@@ -119,6 +155,7 @@ h5_list <- h5dump(in_h5)
 
 #### Load SampleSheet
 ```{r Load SampleSheet}
+stm(paste0("Reading SampleSheet from ",in_key))
 ss <- read.csv(in_key)
 
 if("HashTag" %in% names(ss)) {

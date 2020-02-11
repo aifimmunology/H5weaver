@@ -82,6 +82,76 @@ qc_hist_plot <- function(meta,
   p
 }
 
+#' Generate a QC Histogram Plot for a single fractional metric
+#'
+#' @param meta A data.frame containing metadata
+#' @param column A character object specifying the metadata to display
+#' @param name_x A character object specifying a name to display on the x-axis
+#' @param fill A character object specifying the color to use for for the histogram. Default is "dodgerblue".
+#' @param target A numeric value for a target line to display on the x-axis. Default is 0.5,
+#' @param y_max A numeric value for the maximum value on the y-axis. Default is 2e3.
+#'
+#' @return a ggplot2 plot object
+#' @export
+qc_frac_hist_plot <- function(meta,
+                              column = "n_reads",
+                              name_x = "N Reads per Cell",
+                              fill = "dodgerblue",
+                              target = 0.5,
+                              y_max = 2e3) {
+
+
+  assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
+  assertthat::assert_that(class(column) == "character")
+  assertthat::assert_that(length(column) == 1)
+  assertthat::assert_that(column %in% names(meta))
+  assertthat::assert_that(class(name_x) == "character")
+  assertthat::assert_that(length(name_x) == 1)
+  assertthat::assert_that(class(fill) == "character")
+  assertthat::assert_that(length(fill) == 1)
+  assertthat::assert_that(class(target) == "numeric")
+  assertthat::assert_that(length(target) == 1)
+  assertthat::assert_that(class(y_max) == "numeric")
+  assertthat::assert_that(length(y_max) == 1)
+
+  binwidth <- 0.02
+
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_histogram(ggplot2::aes(x = meta[[column]]),
+                            binwidth = binwidth,
+                            fill = fill) +
+    ggplot2::geom_vline(ggplot2::aes(xintercept = median(meta[[column]])),
+                        linetype = "dashed",
+                        color = "#000000") +
+    ggplot2::geom_text(ggplot2::aes(x = median(meta[[column]]) * .95,
+                                    y = 1450,
+                                    label = paste0("median: ", round(median(meta[[column]]), 3))),
+                       color = "#000000",
+                       hjust = 1,
+                       vjust = 1) +
+    ggplot2::geom_vline(ggplot2::aes(xintercept = target),
+                        linetype = "dashed",
+                        color = "#808080") +
+    ggplot2::geom_text(ggplot2::aes(x = target * 1.05,
+                                    y = 1450,
+                                    label = target),
+                       color = "#808080",
+                       hjust = 0,
+                       vjust = 1) +
+    ggplot2::scale_color_identity() +
+    ggplot2::scale_fill_identity() +
+    ggplot2::scale_y_continuous("N Cells", limits = c(0, y_max)) +
+    ggplot2::theme_bw()
+
+
+  p <- p +
+    ggplot2::scale_x_continuous(name_x,
+                                limits = c(-.02, 1.02),
+                                breaks = seq(0, 1, by = 0.1))
+
+  p
+}
+
 #' Generate a QC Scatter Plot for a pair of metrics
 #'
 #' @param meta A data.frame containing metadata
@@ -90,7 +160,9 @@ qc_hist_plot <- function(meta,
 #' @param column_y A character object specifying the metadata to display on the y-axis
 #' @param name_y A character object specifying a name to display on the y-axis
 #' @param log_x A logical indicating whether or not to log10-scale the x-axis. Default is TRUE.
+#' @param frac_x A logical indicating whether or not to scale the x-axis between 0 and 1. Default is FALSE
 #' @param log_y A logical indicating whether or not to log10-scale the y-axis. Default is TRUE.
+#' @param frac_y A logical indicating whether or not to scale the y-axis between 0 and 1. Default is FALSE
 #' @param show_targets A logical indicating whether or not to plot lines displaying ratios of values. Default is TRUE.
 #' @param color A character object specifying the color to use for for the points. Default is "dodgerblue".
 #'
@@ -102,7 +174,9 @@ qc_scatter_plot <- function(meta,
                             column_y = "n_umis",
                             name_y = "N UMIs per Cell",
                             log_x = TRUE,
+                            frac_x = FALSE,
                             log_y = TRUE,
+                            frac_y = FALSE,
                             show_targets = TRUE,
                             color = "dodgerblue") {
 
@@ -140,18 +214,18 @@ qc_scatter_plot <- function(meta,
                             ggplot2::aes(x = x, xend = xend,
                                          y = y, yend = yend,
                                          group = group),
-                            linetype = "dashed")
+                            linetype = "dashed") +
+      ggplot2::geom_text(data = target_lines,
+                         ggplot2::aes(x = xend * 0.9,
+                                      y = yend,
+                                      label = group),
+                         angle = 45,
+                         hjust = 1,
+                         vjust = 0,
+                         size = 3)
   }
 
   p <- p +
-    ggplot2::geom_text(data = target_lines,
-                       ggplot2::aes(x = xend * 0.9,
-                                    y = yend,
-                                    label = group),
-                       angle = 45,
-                       hjust = 1,
-                       vjust = 0,
-                       size = 3) +
     ggplot2::geom_point(ggplot2::aes(x = meta[[column_x]],
                                      y = meta[[column_y]]),
                         alpha = 0.2,
@@ -166,6 +240,11 @@ qc_scatter_plot <- function(meta,
                              limits = c(1e2, 2.5e5),
                              breaks = c(1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5),
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
+  } else if(frac_x) {
+    p <- p +
+      ggplot2::scale_x_continuous(name_x,
+                             limits = c(0, 1),
+                             breaks = seq(0, 1, by = 0.1))
   } else {
     p <- p +
       ggplot2::scale_x_continuous(name_x)
@@ -177,9 +256,14 @@ qc_scatter_plot <- function(meta,
                              limits = c(1e2, 2.5e5),
                              breaks = c(1e2, 5e2, 1e3, 5e3, 1e4, 5e4, 1e5, 2.5e5),
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
+  } else if(frac_y) {
+    p <- p +
+      ggplot2::scale_y_continuous(name_y,
+                                  limits = c(0, 1),
+                                  breaks = seq(0, 1, by = 0.1))
   } else {
     p <- p +
-      ggplot2::scale_y_continous(name_y)
+      ggplot2::scale_y_continuous(name_y)
   }
 
   p
@@ -265,7 +349,7 @@ qc_violin_plot <- function(meta,
                              labels = c("100", "500", "1k", "5k", "10k", "50k", "100k", "250k"))
   } else {
     p <- p +
-      ggplot2::scale_y_continous(name_y)
+      ggplot2::scale_y_continuous(name_y)
   }
 
   p
@@ -278,6 +362,7 @@ qc_violin_plot <- function(meta,
 #' @param column_x A character object specifying the metadata to use plotting
 #' @param name_x A character object specifying a name to display on the x-axis
 #' @param cutoffs A numeric vector specifying one or more cutoffs to use. Default is c(500, 750, 1000).
+#' @param max_y A numeric value specifying the maximum value to use for the y-axis. Default is 3e4.
 #' @param fill A character object specifying the fill color to use for for the violins. Default is "purple".
 #'
 #' @return a ggplot2 plot object
@@ -286,6 +371,7 @@ qc_cutoff_barplot <- function(meta,
                               column_x = "n_umis",
                               name_x = "N UMIs",
                               cutoffs = c(500, 750, 1000),
+                              max_y = 3e4,
                               fill = "purple") {
 
   assertthat::assert_that(sum(class(meta) %in% c("data.frame","data.table")) > 0)
@@ -315,7 +401,7 @@ qc_cutoff_barplot <- function(meta,
                       fill = fill) +
     ggplot2::scale_fill_identity() +
     ggplot2::scale_y_continuous("N Cells",
-                                limits = c(0, 3e4),
+                                limits = c(0, max_y),
                                 expand = c(0, 0)) +
     ggplot2::scale_x_discrete(paste0(name_x, " Cutoff")) +
     ggplot2::theme_bw()

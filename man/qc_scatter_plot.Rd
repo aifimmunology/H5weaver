@@ -6,8 +6,9 @@
 \usage{
 qc_scatter_plot(meta, column_x = "n_reads",
   name_x = "N Reads per Cell", column_y = "n_umis",
-  name_y = "N UMIs per Cell", log_x = TRUE, log_y = TRUE,
-  show_targets = TRUE, color = "dodgerblue")
+  name_y = "N UMIs per Cell", log_x = TRUE, frac_x = FALSE,
+  log_y = TRUE, frac_y = FALSE, show_targets = TRUE,
+  color = "dodgerblue")
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}
@@ -22,7 +23,11 @@ qc_scatter_plot(meta, column_x = "n_reads",
 
 \item{log_x}{A logical indicating whether or not to log10-scale the x-axis. Default is TRUE.}
 
+\item{frac_x}{A logical indicating whether or not to scale the x-axis between 0 and 1. Default is FALSE}
+
 \item{log_y}{A logical indicating whether or not to log10-scale the y-axis. Default is TRUE.}
+
+\item{frac_y}{A logical indicating whether or not to scale the y-axis between 0 and 1. Default is FALSE}
 
 \item{show_targets}{A logical indicating whether or not to plot lines displaying ratios of values. Default is TRUE.}
 
