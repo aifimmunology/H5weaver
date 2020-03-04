@@ -163,8 +163,8 @@ if("HashTag" %in% names(ss)) {
   out_json <- sub(".h5$","_well_metrics.json",out_h5)
 
 } else if("WellID" %in% names(ss)) {
-  pool_id <- sub("C.+","",well_id)
-  pool_id <- sub("-[A|H|R]P","-P", well_id)
+  pool_id <- sub("C.+","", in_well)
+  pool_id <- sub("-[A|H|R]P","-P", in_well)
   
   pbmc_sample_id <- ss$SampleID[ss$WellID == in_well]
   
