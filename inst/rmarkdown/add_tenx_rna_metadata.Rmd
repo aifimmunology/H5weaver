@@ -166,6 +166,8 @@ if("HashTag" %in% names(ss)) {
   pool_id <- sub("C.+","", in_well)
   pool_id <- sub("-[A|H|R]P","-P", in_well)
   
+  ss$WellID <- sub("-[A|H|R]P","-P", ss$WellID)
+  
   pbmc_sample_id <- ss$SampleID[ss$WellID == in_well]
   
   n_cells <- length(h5_list$matrix$barcodes)
