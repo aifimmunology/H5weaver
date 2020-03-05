@@ -164,7 +164,7 @@ if("HashTag" %in% names(ss)) {
 
 } else if("WellID" %in% names(ss)) {
   pool_id <- sub("C.+","", in_well)
-  pool_id <- sub("-[A|H|R]P","-P", in_well)
+  pool_id <- sub("-[A|H|R]P","-P", pool_id)
   
   ss$WellID <- sub("-[A|H|R]P","-P", ss$WellID)
   
