@@ -58,7 +58,7 @@ read_h5_dgCMatrix <- function(h5_file,
                         p = h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
                         dims = h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/id"))),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
                                         as.vector(h5read(h5_handle, colname_target))
                         )
     )
@@ -68,7 +68,7 @@ read_h5_dgCMatrix <- function(h5_file,
                         p = h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
                         dims = h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/id"))),
+                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
                                         as.vector(h5read(h5_handle, colname_target))
                         )
     )
