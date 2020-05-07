@@ -16,7 +16,10 @@ Depends:
 Imports:
   DT (>= 0.5),
   ggplot2 (>= 3.1.0),
-  ids (>= 1.0.1)
+  ids (>= 1.0.1),
+  Seurat (>= 3.1.0),
+  SingleCellExperiment (>= 1.8.0),
+  SummarizedExperiment (>= 1.16.1)
 Suggests: 
   testthat (>= 2.1.0)
 RoxygenNote: 6.1.1
