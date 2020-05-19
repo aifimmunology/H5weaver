@@ -4,8 +4,13 @@
 \alias{read_h5_dgCMatrix}
 \title{Read the /matrix from a .h5 file as a sparse matrix}
 \usage{
-read_h5_dgCMatrix(h5_file, target = "matrix", feature_names = "id",
-  sample_names = "barcodes", index1 = TRUE)
+read_h5_dgCMatrix(
+  h5_file,
+  target = "matrix",
+  feature_names = "id",
+  sample_names = "barcodes",
+  index1 = TRUE
+)
 }
 \arguments{
 \item{h5_file}{the path to an .h5 file in 10x Genomics format}

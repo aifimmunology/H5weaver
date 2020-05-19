@@ -4,11 +4,19 @@
 \alias{qc_scatter_plot}
 \title{Generate a QC Scatter Plot for a pair of metrics}
 \usage{
-qc_scatter_plot(meta, column_x = "n_reads",
-  name_x = "N Reads per Cell", column_y = "n_umis",
-  name_y = "N UMIs per Cell", log_x = TRUE, frac_x = FALSE,
-  log_y = TRUE, frac_y = FALSE, show_targets = TRUE,
-  color = "dodgerblue")
+qc_scatter_plot(
+  meta,
+  column_x = "n_reads",
+  name_x = "N Reads per Cell",
+  column_y = "n_umis",
+  name_y = "N UMIs per Cell",
+  log_x = TRUE,
+  frac_x = FALSE,
+  log_y = TRUE,
+  frac_y = FALSE,
+  show_targets = TRUE,
+  color = "dodgerblue"
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}

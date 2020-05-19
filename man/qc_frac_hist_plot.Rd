@@ -4,9 +4,14 @@
 \alias{qc_frac_hist_plot}
 \title{Generate a QC Histogram Plot for a single fractional metric}
 \usage{
-qc_frac_hist_plot(meta, column = "n_reads",
-  name_x = "N Reads per Cell", fill = "dodgerblue", target = 0.5,
-  y_max = 2000)
+qc_frac_hist_plot(
+  meta,
+  column = "n_reads",
+  name_x = "N Reads per Cell",
+  fill = "dodgerblue",
+  target = 0.5,
+  y_max = 2000
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}
