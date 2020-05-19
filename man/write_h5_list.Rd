@@ -4,8 +4,15 @@
 \alias{write_h5_list}
 \title{Write an h5_list, as created by rhdf5::h5dump(), to an .h5 file}
 \usage{
-write_h5_list(h5_list, h5_file, overwrite = FALSE, h5_handle = NULL,
-  h5_target = "/")
+write_h5_list(
+  h5_list,
+  h5_file,
+  overwrite = FALSE,
+  h5_handle = NULL,
+  h5_target = "/",
+  h5_attributes = NULL,
+  library_ids = NULL
+)
 }
 \arguments{
 \item{h5_list}{a list object, e.g. a list created by rhdf5::h5dump()}

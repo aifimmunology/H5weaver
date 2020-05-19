@@ -4,8 +4,14 @@
 \alias{qc_cutoff_barplot}
 \title{Generate a QC Barplot for a metric at multiple cutoffs}
 \usage{
-qc_cutoff_barplot(meta, column_x = "n_umis", name_x = "N UMIs",
-  cutoffs = c(500, 750, 1000), max_y = 30000, fill = "purple")
+qc_cutoff_barplot(
+  meta,
+  column_x = "n_umis",
+  name_x = "N UMIs",
+  cutoffs = c(500, 750, 1000),
+  max_y = 30000,
+  fill = "purple"
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}

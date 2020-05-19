@@ -4,14 +4,21 @@
 \alias{qc_stacked_barplot}
 \title{Generate a stacked barplot for two categorical metrics}
 \usage{
-qc_stacked_barplot(meta, category_x = "batch_id", name_x = "Batch ID",
-  category_y = "well_id", category_name = "Well ID",
-  colorset_y = "varibow", name_y = "N Cells", as_fraction = FALSE)
+qc_stacked_barplot(
+  meta,
+  category_x = "batch_id",
+  name_x = "Batch ID",
+  category_y = "well_id",
+  category_name = "Well ID",
+  colorset_y = "varibow",
+  name_y = "N Cells",
+  as_fraction = FALSE
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}
 
-\item{category_x}{A character object specifying the metadata to use for grouping on the x-axis}
+\item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
 
 \item{name_x}{A character object specifying a name to display on the x-axis}
 
@@ -22,8 +29,6 @@ qc_stacked_barplot(meta, category_x = "batch_id", name_x = "Batch ID",
 \item{name_y}{A character object specifying a name for the y-axis.}
 
 \item{as_fraction}{A logical object specifying whether or not to display the stacked bars as fractions of the total count for each category_x. Default is FALSE.}
-
-\item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
 }
 \value{
 a ggplot2 plot object

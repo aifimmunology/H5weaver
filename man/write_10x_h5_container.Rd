@@ -4,9 +4,14 @@
 \alias{write_10x_h5_container}
 \title{Generate an empty HDF5 container to store RNA-seq count data in 10x format}
 \usage{
-write_10x_h5_container(h5_file, cell_barcode_length = 15,
-  data_type = "integer", data_bits = 16, indices_bits = 16,
-  indptr_bits = 32)
+write_10x_h5_container(
+  h5_file,
+  cell_barcode_length = 15,
+  data_type = "integer",
+  data_bits = 16,
+  indices_bits = 16,
+  indptr_bits = 32
+)
 }
 \arguments{
 \item{cell_barcode_length}{18}

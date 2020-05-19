@@ -4,8 +4,15 @@
 \alias{qc_hist_plot}
 \title{Generate a QC Histogram Plot for a single metric}
 \usage{
-qc_hist_plot(meta, column = "n_reads", name_x = "N Reads per Cell",
-  log_x = TRUE, fill = "dodgerblue", target = 20000, y_max = 2000)
+qc_hist_plot(
+  meta,
+  column = "n_reads",
+  name_x = "N Reads per Cell",
+  log_x = TRUE,
+  fill = "dodgerblue",
+  target = 20000,
+  y_max = 2000
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}

@@ -4,14 +4,21 @@
 \alias{qc_aligned_barplot}
 \title{Generate a baseline-aligned barplot for two categorical metrics}
 \usage{
-qc_aligned_barplot(meta, category_x = "batch_id", name_x = "Batch ID",
-  category_y = "well_id", category_name = "Well ID",
-  colorset_y = "varibow", name_y = "N Cells", padding = 0.2)
+qc_aligned_barplot(
+  meta,
+  category_x = "batch_id",
+  name_x = "Batch ID",
+  category_y = "well_id",
+  category_name = "Well ID",
+  colorset_y = "varibow",
+  name_y = "N Cells",
+  padding = 0.2
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}
 
-\item{category_x}{A character object specifying the metadata to use for grouping on the x-axis}
+\item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
 
 \item{name_x}{A character object specifying a name to display on the x-axis}
 
@@ -22,8 +29,6 @@ qc_aligned_barplot(meta, category_x = "batch_id", name_x = "Batch ID",
 \item{name_y}{A character object specifying a name for the y-axis.}
 
 \item{padding}{A numeric object specifying the fraction of the total vertical space to use for separating category_y groups. Default is 0.2.}
-
-\item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
 }
 \value{
 a ggplot2 plot object
