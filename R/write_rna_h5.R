@@ -84,7 +84,7 @@ write_h5_list <- function(h5_list,
     h5_attr_list()
   }
 
-  if(!is.null(library_id)) {
+  if(!is.null(library_ids)) {
     h5_attributes$library_ids <- library_ids
   }
 
@@ -114,17 +114,21 @@ write_h5_list <- function(h5_list,
   }
 
   # Add file attributes to match cellranger
-  if(h5_target == "/") {
-    base_obj <- H5Dopen(h5_handle, "/")
+  if(!is.null(h5_attributes)) {
+    if(h5_target != "/" & h5_attributes != "__competed__") {
+      base_obj <- H5Dopen(h5_handle, "/")
 
-    for(i in 1:length(h5_attributes)) {
-      h5writeAttribute(h5_attributes[[i]],
-                       base_obj,
-                       names(h5_attributes)[i])
+      for(i in 1:length(h5_attributes)) {
+        h5writeAttribute(h5_attributes[[i]],
+                         base_obj,
+                         names(h5_attributes)[i])
+      }
+
+      H5Dclose(base_obj)
     }
-
-    H5Dclose(base_obj)
+    h5_attributes <- "__competed__"
   }
+
 
   h5_names <- names(h5_list)
   if(length(h5_names) > 0) {
