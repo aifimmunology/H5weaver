@@ -4,9 +4,15 @@
 \alias{qc_violin_plot}
 \title{Generate a QC Violin Plot for a metric, grouped by a categorical metadata column.}
 \usage{
-qc_violin_plot(meta, category_x = "well_id", name_x = "Well ID",
-  column_y = "n_reads", name_y = "N Reads per Cell", log_y = TRUE,
-  fill = "skyblue")
+qc_violin_plot(
+  meta,
+  category_x = "well_id",
+  name_x = "Well ID",
+  column_y = "n_reads",
+  name_y = "N Reads per Cell",
+  log_y = TRUE,
+  fill = "skyblue"
+)
 }
 \arguments{
 \item{meta}{A data.frame containing metadata}

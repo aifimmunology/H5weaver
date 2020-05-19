@@ -190,6 +190,123 @@ read_h5_feature_meta <- function(h5_file,
   }
 }
 
+#' Read .h5 directly into a Seurat Object
+#'
+#' By default, matrix data will be stored in the "RNA" assay.
+#'
+#' CITE-seq data will be automatically detected and stored in the "ADT" assay.
+#'
+#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#' @param ... Additional parameters passed to \code{\link{Seurat::createSeuratObject}}
+#'
+#' @return a Seurat Class object
+#' @export
+read_h5_seurat <- function(h5_file,
+                           target = "matrix",
+                           ...) {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+
+  mat <- read_h5_dgCMatrix(h5_file,
+                           target = target)
+
+  cell_meta <- read_h5_cell_meta(h5_file,
+                                 target = target)
+
+  feat_meta <- read_h5_feature_meta(h5_file,
+                                    target = target)
+
+  cite <- FALSE
+
+  # Check for CITE-seq data
+  if("feature_type" %in% names(feat_meta)) {
+    if("Antibody Capture" %in% feat_meta$feature_type) {
+      cite <- TRUE
+    }
+  }
+
+  if(cite) {
+    cite_feat <- feat_meta[feat_meta$feature_type == "Antibody Capture",]
+    feat_meta <- feat_meta[feat_meta$feature_type != "Antibody Capture",]
+
+    cite_mat <- mat[cite_feat$id,]
+    mat <- mat[feat_meta$id,]
+  }
+
+  so <- Seurat::CreateSeuratObject(counts = mat,
+                                   meta.data = cell_meta,
+                                   ...)
+  if(cite) {
+    so[["ADT"]] <- CreateAssayObject(counts = cite_mat)
+  }
+
+  so
+}
+
+#' Read .h5 directly into a SingleCellExperiment object
+#'
+#' By default, matrix data will be stored in the "counts" assay.
+#'
+#' CITE-seq data will be automatically detected and stored in the altExp called "ADT"
+#'
+#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#' @param ... Additional parameters passed to \code{\link{SingleCellExperiment::SingleCellExperiment()}}
+#'
+#' @return a SingleCellExperiment Class object
+#' @export
+read_h5_sce <- function(h5_file,
+                        target = "matrix",
+                        ...) {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+
+  mat <- read_h5_dgCMatrix(h5_file,
+                           target = target)
+
+  cell_meta <- read_h5_cell_meta(h5_file,
+                                 target = target)
+
+  feat_meta <- read_h5_feature_meta(h5_file,
+                                    target = target)
+
+  cite <- FALSE
+
+  # Check for CITE-seq data
+  if("feature_type" %in% names(feat_meta)) {
+    if("Antibody Capture" %in% feat_meta$feature_type) {
+      cite <- TRUE
+    }
+  }
+
+  if(cite) {
+    cite_feat <- feat_meta[feat_meta$feature_type == "Antibody Capture",]
+    feat_meta <- feat_meta[feat_meta$feature_type != "Antibody Capture",]
+
+    cite_mat <- mat[cite_feat$id,]
+    mat <- mat[feat_meta$id,]
+  }
+
+  sce <- SingleCellExperiment::SingleCellExperiment(
+    assays = list(counts = mat),
+    colData = cell_meta,
+    rowData = feat_meta,
+    ...
+  )
+
+  if(cite) {
+    cite_se <- SummarizedExperiment::SummarizedExperiment(
+      assays = list(counts = cite_mat)
+    )
+    altExp(sce, "ADT") <- cite_se
+  }
+
+  sce
+}
+
 #' List objects in an HDF5 file
 #'
 #' This is a wrapper around rhdf5::h5ls() that adds the full name of each object.
