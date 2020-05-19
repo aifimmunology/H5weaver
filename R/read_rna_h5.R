@@ -214,6 +214,7 @@ read_h5_seurat <- function(h5_file,
 
   cell_meta <- read_h5_cell_meta(h5_file,
                                  target = target)
+  rownames(cell_meta) <- cell_meta$barcodes
 
   feat_meta <- read_h5_feature_meta(h5_file,
                                     target = target)
