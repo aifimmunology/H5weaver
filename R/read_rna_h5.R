@@ -245,6 +245,18 @@ read_h5_seurat <- function(h5_file,
   so
 }
 
+#' Read .h5 directly into a SingleCellExperiment object
+#'
+#' By default, matrix data will be stored in the "counts" assay.
+#'
+#' CITE-seq data will be automatically detected and stored in the altExp called "ADT"
+#'
+#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#' @param ... Additional parameters passed to \code{\link{SingleCellExperiment::SingleCellExperiment()}}
+#'
+#' @return a SingleCellExperiment Class object
+#' @export
 read_h5_sce <- function(h5_file,
                         target = "matrix",
                         ...) {

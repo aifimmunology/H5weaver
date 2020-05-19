@@ -40,6 +40,23 @@ choose_chunk_size <- function(x) {
   }
 }
 
+h5_attr_list <- function(library_ids = NULL) {
+
+  attr_list <- list(chemistry_description = "Single Cell 3' v3",
+                   filetype = "matrix",
+                   library_ids = paste(Sys.Date(),
+                                       ids::proquint(1),
+                                       sep = "-"),
+                   original_gem_groups = 1,
+                   version = 2)
+  if(!is.null(library_ids)) {
+    assertthat::assert_that(class(library_ids) == "character")
+    attr_list$library_ids <- library_ids
+  }
+
+  attr_list
+}
+
 #' Write an h5_list, as created by rhdf5::h5dump(), to an .h5 file
 #'
 #' @param h5_list a list object, e.g. a list created by rhdf5::h5dump()
@@ -55,11 +72,21 @@ write_h5_list <- function(h5_list,
                           h5_file,
                           overwrite = FALSE,
                           h5_handle = NULL,
-                          h5_target = "/") {
+                          h5_target = "/",
+                          h5_attributes = NULL,
+                          library_ids = NULL) {
 
   assertthat::assert_that(is.list(h5_list))
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
+
+  if(is.null(h5_attributes)) {
+    h5_attr_list()
+  }
+
+  if(!is.null(library_id)) {
+    h5_attributes$library_ids <- library_ids
+  }
 
   # Make sure the HDF5 file connection is closed if the function
   # exits due to an error.
@@ -83,6 +110,20 @@ write_h5_list <- function(h5_list,
     H5Fcreate(h5_file)
 
     h5_handle <- H5Fopen(h5_file)
+
+  }
+
+  # Add file attributes to match cellranger
+  if(h5_target == "/") {
+    base_obj <- H5Dopen(h5_handle, "/")
+
+    for(i in 1:length(h5_attributes)) {
+      h5writeAttribute(h5_attributes[[i]],
+                       base_obj,
+                       names(h5_attributes)[i])
+    }
+
+    H5Dclose(base_obj)
   }
 
   h5_names <- names(h5_list)
