@@ -49,6 +49,32 @@ H5weaver allows for reading of the contents of an HDF5 file in multiple ways. To
 h5_file <- system.file("testdata/well1.h5", package = "H5weaver")
 ```
 
+### Reading as a Seurat object
+
+We can read and .h5 file directoy into a Seurat object using read_h5_seurat():
+
+```
+library(H5weaver)
+
+so <- read_h5_seurat(h5_file)
+```
+
+This function places the RNA-seq counts in the "RNA" assay, and CITE-seq ADT counts (if present) in the "ADT" assay.
+
+### Reading as a SingleCellExperiment object
+
+Likewise, we can read directly into a SingleCellExperiment object for use with BioConductor packages using read_h5_sce().
+
+```
+library(H5weaver)
+
+sce <- read_h5_sce(h5_file)
+```
+
+Note that this requires a recent version of SingleCellExperiment (>= 1.8.0) so that ADTs are handled correctly.
+
+In this case, RNA-$eq counts are stored in the "counts" slot for the SingleCellExperiment, and CITE-seq ADT counts (if present) are stored in the altExp "ADT" slot.
+
 ### Reading the matrix directly
 
 There is a convenience function to directly read the main cell x gene matrix from the HDF5 file, read_h5_dgCMatrix():
