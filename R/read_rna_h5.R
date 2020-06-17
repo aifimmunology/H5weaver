@@ -220,7 +220,7 @@ read_h5_seurat <- function(h5_file,
 
   mat <- read_h5_dgCMatrix(h5_file,
                            target = target,
-                           feature_names = "name")
+                           feature_names = feature_names)
 
   cell_meta <- read_h5_cell_meta(h5_file,
                                  target = target)
