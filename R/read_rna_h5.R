@@ -198,12 +198,14 @@ read_h5_feature_meta <- function(h5_file,
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
 #' @param ... Additional parameters passed to \code{\link{Seurat::createSeuratObject}}
 #'
 #' @return a Seurat Class object
 #' @export
 read_h5_seurat <- function(h5_file,
                            target = "matrix",
+                           feature_names = "id",
                            ...) {
 
   if(!requireNamespace("Seurat", versionCheck = list(op = ">=", version = "3.1.0"))) {
@@ -212,9 +214,13 @@ read_h5_seurat <- function(h5_file,
 
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
+  assertthat::assert_that(typeof(feature_names) == "character")
+  assertthat::assert_that(length(feature_names) == 1)
+  assertthat::assert_that(feature_names %in% c("id","name"))
 
   mat <- read_h5_dgCMatrix(h5_file,
-                           target = target)
+                           target = target,
+                           feature_names = "name")
 
   cell_meta <- read_h5_cell_meta(h5_file,
                                  target = target)
