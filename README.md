@@ -7,11 +7,11 @@
 
 This can usually be accomplished with:
 ```
-sudo apt-get install hdf5-devel
+sudo apt-get install hdf5-dev
 ```
 or
 ```
-sudo yum install hdf5-devel
+sudo yum install hdf5-dev
 ```
 
 Once hdf5 libraries are available, you can proceed to installation of `rhdf5`.
@@ -35,6 +35,13 @@ You may first need to register your GitHub PAT, as this is a private repository.
 Sys.setenv(GITHUB_PAT = "your-access-token-here")
 devtools::install_github("aifimmunology/H5weaver")
 ```
+
+# AIFI .h5 structure
+
+The structure of AIFI .h5 files differs somewhat from files supplied directly by CellRanger. The major difference is the addition of richer metadata and additional results (e.g. from Cell Hashing).
+
+A summary of the structure is available in Google Sheets here: [10x .h5 file structure](https://docs.google.com/spreadsheets/d/110NO7o6rMorPF85r5s0mVQiwEiTC2AiWNdAYQVemZJ8/edit#gid=0)
+
 # Reading .h5 files
 
 H5weaver allows for reading of the contents of an HDF5 file in multiple ways. To demonstrate, we'll use a file stored in the H5weaver package. You can obtain the path to this file using:
@@ -44,7 +51,7 @@ h5_file <- system.file("testdata/well1.h5", package = "H5weaver")
 
 ### Reading the matrix directly
 
-There is also a convenience function to directly read the main cell x gene matrix from the HDF5 file, read_h5_dgCMatrix():
+There is a convenience function to directly read the main cell x gene matrix from the HDF5 file, read_h5_dgCMatrix():
 
 ```
 library(H5weaver)
