@@ -206,6 +206,10 @@ read_h5_seurat <- function(h5_file,
                            target = "matrix",
                            ...) {
 
+  if(!requireNamespace("Seurat", versionCheck = list(op = ">=", version = "3.1.0"))) {
+    stop("Can't find the Seurat package. Please install with install.packages(\"Seurat\")")
+  }
+
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
 
@@ -214,6 +218,7 @@ read_h5_seurat <- function(h5_file,
 
   cell_meta <- read_h5_cell_meta(h5_file,
                                  target = target)
+  rownames(cell_meta) <- cell_meta$barcodes
 
   rownames(cell_meta) <- cell_meta$barcodes
 
@@ -262,6 +267,10 @@ read_h5_seurat <- function(h5_file,
 read_h5_sce <- function(h5_file,
                         target = "matrix",
                         ...) {
+
+  if(!requireNamespace("SingleCellExperiment", versionCheck = list(op = ">=", version = "1.8.0"))) {
+    stop("Can't find the SingleCellExperiment package. Please install with BiocManater::install(\"SingleCellExperiment\")")
+  }
 
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
