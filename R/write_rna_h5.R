@@ -71,6 +71,7 @@ h5_attr_list <- function(library_ids = NULL) {
 write_h5_list <- function(h5_list,
                           h5_file,
                           overwrite = FALSE,
+                          addon = FALSE,
                           h5_handle = NULL,
                           h5_target = "/",
                           h5_attributes = NULL,
@@ -81,7 +82,7 @@ write_h5_list <- function(h5_list,
   assertthat::assert_that(length(h5_file) == 1)
 
   if(is.null(h5_attributes)) {
-    h5_attr_list()
+    h5_attributes <- h5_attr_list()
   }
 
   if(!is.null(library_ids)) {
@@ -97,25 +98,25 @@ write_h5_list <- function(h5_list,
   })
 
   if(is.null(h5_handle)) {
-    if(!overwrite) {
+    if(!overwrite & !addon) {
       if(file.exists(h5_file)) {
         stop(paste(h5_file, "already exists."))
       }
-    } else {
+    } else if(overwrite) {
       if(file.exists(h5_file)) {
         file.remove(h5_file)
       }
+    } else if(!addon) {
+      H5Fcreate(h5_file)
     }
-
-    H5Fcreate(h5_file)
 
     h5_handle <- H5Fopen(h5_file)
 
   }
 
   # Add file attributes to match cellranger
-  if(!is.null(h5_attributes)) {
-    if(h5_target != "/" & h5_attributes != "__competed__") {
+  if(!is.null(h5_attributes) & !addon) {
+    if(h5_target != "/" & h5_attributes != "__completed__") {
       base_obj <- H5Dopen(h5_handle, "/")
 
       for(i in 1:length(h5_attributes)) {
@@ -126,7 +127,7 @@ write_h5_list <- function(h5_list,
 
       H5Dclose(base_obj)
     }
-    h5_attributes <- "__competed__"
+    h5_attributes <- "__completed__"
   }
 
 
@@ -158,7 +159,9 @@ write_h5_list <- function(h5_list,
         write_h5_list(h5_list[[h5_name]],
                       h5_file = h5_file,
                       h5_handle = h5_handle,
-                      h5_target = paste0(new_object,"/"))
+                      h5_target = paste0(new_object,"/"),
+                      h5_attributes = h5_attributes,
+                      addon = addon)
       } else if(class(h5_list[[h5_name]]) == "numeric") {
         h5createDataset(h5_handle,
                         dataset = new_object,
@@ -518,4 +521,31 @@ expand_h5_dataset <- function(h5_file,
                 new_size)
 
   H5Dclose(dset_handle)
+}
+
+add_h5_transposed_matrix <- function(h5_file,
+                                     in_target = "matrix",
+                                     in_feature_names = "id",
+                                     in_sample_names = "barcodes",
+                                     out_target = paste0("transposed_",target)) {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+  assertthat::assert_that(file.exists(h5_file))
+
+  mat <- read_h5_dgCMatrix(h5_file,
+                           target = target,
+                           feature_names = in_feature_names,
+                           sample_names = in_sample_names)
+
+  mat <- list(Matrix::t(mat))
+  names(mat) <- paste0(out_target,"_dgCMatrix")
+
+  mat <- h5_list_convert_from_dgCMatrix(mat,
+                                        target = out_target)
+
+  write_h5_list(mat,
+                h5_file = h5_file,
+                overwrite = FALSE,
+                addon = TRUE)
 }
