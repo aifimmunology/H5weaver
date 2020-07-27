@@ -43,12 +43,12 @@ choose_chunk_size <- function(x) {
 h5_attr_list <- function(library_ids = NULL) {
 
   attr_list <- list(chemistry_description = "Single Cell 3' v3",
-                   filetype = "matrix",
-                   library_ids = paste(Sys.Date(),
-                                       ids::proquint(1),
-                                       sep = "-"),
-                   original_gem_groups = 1,
-                   version = 2)
+                    filetype = "matrix",
+                    library_ids = paste(Sys.Date(),
+                                        ids::proquint(1),
+                                        sep = "-"),
+                    original_gem_groups = 1,
+                    version = 2)
   if(!is.null(library_ids)) {
     assertthat::assert_that(class(library_ids) == "character")
     attr_list$library_ids <- library_ids
@@ -71,6 +71,7 @@ h5_attr_list <- function(library_ids = NULL) {
 write_h5_list <- function(h5_list,
                           h5_file,
                           overwrite = FALSE,
+                          addon = FALSE,
                           h5_handle = NULL,
                           h5_target = "/",
                           h5_attributes = NULL,
@@ -81,7 +82,7 @@ write_h5_list <- function(h5_list,
   assertthat::assert_that(length(h5_file) == 1)
 
   if(is.null(h5_attributes)) {
-    h5_attr_list()
+    h5_attributes <- h5_attr_list()
   }
 
   if(!is.null(library_ids)) {
@@ -92,41 +93,47 @@ write_h5_list <- function(h5_list,
   # exits due to an error.
   on.exit(expr = {
     if(h5_target == "/") {
-      h5closeAll()
+      rhdf5::h5closeAll()
     }
   })
 
   if(is.null(h5_handle)) {
-    if(!overwrite) {
+    if(!overwrite & !addon) {
       if(file.exists(h5_file)) {
         stop(paste(h5_file, "already exists."))
+      } else {
+        rhdf5::H5Fcreate(h5_file)
       }
-    } else {
+    } else if(overwrite) {
       if(file.exists(h5_file)) {
         file.remove(h5_file)
+        rhdf5::H5Fcreate(h5_file)
       }
+    } else if(!addon) {
+      rhdf5::H5Fcreate(h5_file)
+    } else {
+      rhdf5::H5Fcreate(h5_file)
     }
+    print(file.exists(h5_file))
 
-    H5Fcreate(h5_file)
-
-    h5_handle <- H5Fopen(h5_file)
+    h5_handle <- rhdf5::H5Fopen(h5_file)
 
   }
 
   # Add file attributes to match cellranger
-  if(!is.null(h5_attributes)) {
-    if(h5_target != "/" & h5_attributes != "__competed__") {
-      base_obj <- H5Dopen(h5_handle, "/")
+  if(!is.null(h5_attributes) & !addon) {
+    if(h5_target != "/" & class(h5_attributes) == "list") {
+      base_obj <- rhdf5::H5Dopen(h5_handle, "/")
 
       for(i in 1:length(h5_attributes)) {
-        h5writeAttribute(h5_attributes[[i]],
-                         base_obj,
-                         names(h5_attributes)[i])
+        rhdf5::h5writeAttribute(h5_attributes[[i]],
+                                base_obj,
+                                names(h5_attributes)[i])
       }
 
-      H5Dclose(base_obj)
+      rhdf5::H5Dclose(base_obj)
     }
-    h5_attributes <- "__competed__"
+    h5_attributes <- "__completed__"
   }
 
 
@@ -152,50 +159,52 @@ write_h5_list <- function(h5_list,
       }
 
       if(class(h5_list[[h5_name]]) == "list") {
-        h5createGroup(h5_handle,
-                      group = new_object)
+        rhdf5::h5createGroup(h5_handle,
+                             group = new_object)
         # Recurse function to write children of list
         write_h5_list(h5_list[[h5_name]],
                       h5_file = h5_file,
                       h5_handle = h5_handle,
-                      h5_target = paste0(new_object,"/"))
+                      h5_target = paste0(new_object,"/"),
+                      h5_attributes = h5_attributes,
+                      addon = addon)
       } else if(class(h5_list[[h5_name]]) == "numeric") {
-        h5createDataset(h5_handle,
-                        dataset = new_object,
-                        dims = list(length(h5_list[[h5_name]])),
-                        chunk = choose_chunk_size(h5_list[[h5_name]]),
-                        storage.mode = storage.mode(h5_list[[h5_name]]))
+        rhdf5::h5createDataset(h5_handle,
+                               dataset = new_object,
+                               dims = list(length(h5_list[[h5_name]])),
+                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               storage.mode = storage.mode(h5_list[[h5_name]]))
 
-        h5write(obj = h5_list[[h5_name]],
-                file = h5_handle,
-                name = new_object)
+        rhdf5::h5write(obj = h5_list[[h5_name]],
+                       file = h5_handle,
+                       name = new_object)
       } else if(class(h5_list[[h5_name]]) == "integer") {
         bits <- choose_integer_bits(h5_list[[h5_name]])
         h5_type <- paste0("H5T_NATIVE_UINT",bits)
 
-        h5createDataset(h5_handle,
-                        dataset = new_object,
-                        dims = list(length(h5_list[[h5_name]])),
-                        chunk = choose_chunk_size(h5_list[[h5_name]]),
-                        H5type = h5_type)
+        rhdf5::h5createDataset(h5_handle,
+                               dataset = new_object,
+                               dims = list(length(h5_list[[h5_name]])),
+                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               H5type = h5_type)
 
-        h5write(obj = h5_list[[h5_name]],
-                file = h5_handle,
-                name = new_object)
+        rhdf5::h5write(obj = h5_list[[h5_name]],
+                       file = h5_handle,
+                       name = new_object)
 
       } else if(class(h5_list[[h5_name]]) == "character") {
         h5_list[[h5_name]][is.na(h5_list[[h5_name]])] <- "NA"
 
-        h5createDataset(h5_handle,
-                        dataset = new_object,
-                        dims = list(length(h5_list[[h5_name]])),
-                        chunk = choose_chunk_size(h5_list[[h5_name]]),
-                        storage.mode = storage.mode(h5_list[[h5_name]]),
-                        size = max(nchar(h5_list[[h5_name]])) + 1)
+        rhdf5::h5createDataset(h5_handle,
+                               dataset = new_object,
+                               dims = list(length(h5_list[[h5_name]])),
+                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               storage.mode = storage.mode(h5_list[[h5_name]]),
+                               size = max(nchar(h5_list[[h5_name]])) + 1)
 
-        h5write(obj = h5_list[[h5_name]],
-                file = h5_handle,
-                name = new_object)
+        rhdf5::h5write(obj = h5_list[[h5_name]],
+                       file = h5_handle,
+                       name = new_object)
       }
     }
   }
@@ -228,12 +237,12 @@ create_ext_h5_character <- function(h5_handle,
   assertthat::assert_that(class(size) == "numeric")
   assertthat::assert_that(length(size) == 1)
 
-  h5createDataset(h5_handle,
-                  "/matrix/barcodes",
-                  dims = 0,
-                  storage.mode = "character",
-                  size = size,
-                  maxdims = H5Sunlimited())
+  rhdf5::h5createDataset(h5_handle,
+                         "/matrix/barcodes",
+                         dims = 0,
+                         storage.mode = "character",
+                         size = size,
+                         maxdims = rhdf5::H5Sunlimited())
 }
 
 
@@ -257,9 +266,9 @@ write_ext_h5_character <- function(object,
                               h5_handle,
                               name)
     } else {
-      h5write(object,
-              h5_handle,
-              name)
+      rhdf5::h5write(object,
+                     h5_handle,
+                     name)
     }
 
     create_ext_h5_character(h5_handle,
@@ -291,7 +300,7 @@ append_ext_h5_character <- function(object,
   assertthat::assert_that(class(name) == "character")
   assertthat::assert_that(length(name) == 1)
 
-  h5_contents <- HTOparser::h5ls(h5_handle)
+  h5_contents <- H5weaver::h5ls(h5_handle)
 
   if(!name %in% h5_contents$full_name) {
     stop(paste(name, "does not exist. Use create_ext_h5_character() first."))
@@ -306,10 +315,10 @@ append_ext_h5_character <- function(object,
                     name,
                     new_size)
 
-  h5write(object,
-          h5_handle,
-          name,
-          index = (current_size + 1):new_size)
+  rhdf5::h5write(object,
+                 h5_handle,
+                 name,
+                 index = (current_size + 1):new_size)
 
 }
 
@@ -360,11 +369,11 @@ create_ext_h5_uint <- function(h5_handle,
 
   H5type <- paste0("H5T_NATIVE_UINT",bits)
 
-  h5createDataset(h5_handle,
-                  name,
-                  dims = 0,
-                  H5type = H5type,
-                  maxdims = H5Sunlimited())
+  rhdf5::h5createDataset(h5_handle,
+                         name,
+                         dims = 0,
+                         H5type = H5type,
+                         maxdims = rhdf5::H5Sunlimited())
 }
 
 #' Create an extensible float HDF5 dataset
@@ -377,7 +386,7 @@ create_ext_h5_uint <- function(h5_handle,
 #' @return No return value
 #'
 create_ext_h5_float <- function(h5_handle,
-                                 name) {
+                                name) {
 
   assertthat::assert_that(class(h5_handle) == "H5IdComponent")
   assertthat::assert_that(length(h5_handle) == 1)
@@ -385,11 +394,11 @@ create_ext_h5_float <- function(h5_handle,
   assertthat::assert_that(class(name) == "character")
   assertthat::assert_that(length(name) == 1)
 
-  h5createDataset(h5_handle,
-                  name,
-                  dims = 0,
-                  H5type = "H5T_NATIVE_FLOAT",
-                  maxdims = H5Sunlimited())
+  rhdf5::h5createDataset(h5_handle,
+                         name,
+                         dims = 0,
+                         H5type = "H5T_NATIVE_FLOAT",
+                         maxdims = H5Sunlimited())
 }
 
 #' Generate an empty HDF5 container to store RNA-seq count data in 10x format
@@ -421,15 +430,15 @@ write_10x_h5_container <- function(h5_file,
   # Make sure the HDF5 file connection is closed if the function
   # exits due to an error.
   on.exit(expr = {
-    H5Fclose(h5_handle)
+    rhdf5::H5Fclose(h5_handle)
   })
 
-  H5Fcreate(h5_file)
+  rhdf5::H5Fcreate(h5_file)
 
-  h5_handle <- H5Fopen(h5_file)
+  h5_handle <- rhdf5::H5Fopen(h5_file)
 
-  h5createGroup(h5_handle, "/matrix")
-  h5createGroup(h5_handle, "/matrix/features")
+  rhdf5::h5createGroup(h5_handle, "/matrix")
+  rhdf5::h5createGroup(h5_handle, "/matrix/features")
 
   # default 10x cell metadata
   create_ext_h5_character(h5_handle,
@@ -468,7 +477,7 @@ write_10x_h5_container <- function(h5_file,
                      name = "/matrix/indptr",
                      bits = indptr_bits)
 
-  H5Fclose(h5_handle)
+  rhdf5::H5Fclose(h5_handle)
 }
 
 #' Expand the size of an HDF5 dataset.
@@ -496,10 +505,10 @@ expand_h5_dataset <- function(h5_file,
 
   if(class(h5_file) == "character") {
     on.exit(expr = {
-      H5Fclose(h5_handle)
+      rhdf5::H5Fclose(h5_handle)
     })
 
-    h5_handle <- H5Fopen(h5_file)
+    h5_handle <- rhdf5::H5Fopen(h5_file)
   } else if(class(h5_file) == "H5IdComponent") {
     h5_handle <- h5_file
   }
@@ -511,11 +520,38 @@ expand_h5_dataset <- function(h5_file,
     stop(paste("new_size", new_size, "is not greater than the current size of", name, ":", current_size))
   }
 
-  dset_handle <- H5Dopen(h5_handle,
-                         name = name)
+  dset_handle <- rhdf5::H5Dopen(h5_handle,
+                                name = name)
 
-  H5Dset_extent(dset_handle,
-                new_size)
+  rhdf5::H5Dset_extent(dset_handle,
+                       new_size)
 
-  H5Dclose(dset_handle)
+  rhdf5::H5Dclose(dset_handle)
+}
+
+add_h5_transposed_matrix <- function(h5_file,
+                                     in_target = "matrix",
+                                     in_feature_names = "id",
+                                     in_sample_names = "barcodes",
+                                     out_target = paste0("transposed_",target)) {
+
+  assertthat::assert_that(is.character(h5_file))
+  assertthat::assert_that(length(h5_file) == 1)
+  assertthat::assert_that(file.exists(h5_file))
+
+  mat <- read_h5_dgCMatrix(h5_file,
+                           target = target,
+                           feature_names = in_feature_names,
+                           sample_names = in_sample_names)
+
+  mat <- list(Matrix::t(mat))
+  names(mat) <- paste0(out_target,"_dgCMatrix")
+
+  mat <- h5_list_convert_from_dgCMatrix(mat,
+                                        target = out_target)
+
+  write_h5_list(mat,
+                h5_file = h5_file,
+                overwrite = FALSE,
+                addon = TRUE)
 }
