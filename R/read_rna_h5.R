@@ -38,13 +38,13 @@ read_h5_dgCMatrix <- function(h5_file,
   # Make sure the HDF5 file connection is closed if the function
   # exits due to an error.
   on.exit(expr = {
-    H5Fclose(h5_handle)
+    rhdf5::H5Fclose(h5_handle)
   })
 
   feature_names <- match.arg(arg = feature_names,
                              choices = c("id","name"))
 
-  h5_handle <- H5Fopen(h5_file)
+  h5_handle <- rhdf5::H5Fopen(h5_file)
 
   if(sample_names == "barcodes") {
     colname_target <- paste0("/", target, "/barcodes")
@@ -53,23 +53,23 @@ read_h5_dgCMatrix <- function(h5_file,
   }
 
   if(index1) {
-    mat <- sparseMatrix(x = h5read(h5_handle, paste0("/",target,"/data")),
-                        i = h5read(h5_handle, paste0("/",target,"/indices")) + 1,
-                        p = h5read(h5_handle, paste0("/",target,"/indptr")),
+    mat <- sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
+                        i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")) + 1,
+                        p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
-                        dims = h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                        as.vector(h5read(h5_handle, colname_target))
+                        dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
+                        dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
+                                        as.vector(rhdf5::h5read(h5_handle, colname_target))
                         )
     )
   } else {
-    mat <- sparseMatrix(x = h5read(h5_handle, paste0("/",target,"/data")),
-                        i = h5read(h5_handle, paste0("/",target,"/indices")),
-                        p = h5read(h5_handle, paste0("/",target,"/indptr")),
+    mat <- sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
+                        i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")),
+                        p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
                         index1 = index1,
-                        dims = h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                        as.vector(h5read(h5_handle, colname_target))
+                        dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
+                        dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
+                                        as.vector(rhdf5::h5read(h5_handle, colname_target))
                         )
     )
   }
@@ -95,7 +95,7 @@ read_h5_cell_meta <- function(h5_file,
                    target,
                    paste0("/",target))
 
-  h5_contents <- h5ls(h5_file)
+  h5_contents <- H5weaver::h5ls(h5_file)
   target_contents <- h5_contents[grepl(paste0("^",target), h5_contents$group),]
 
   h5_meta_targets <- character()
@@ -118,7 +118,7 @@ read_h5_cell_meta <- function(h5_file,
     meta_list <- lapply(h5_meta_targets,
                         function(x) {
                           rhdf5::h5read(h5_file,
-                                        x)
+                                               x)
                         })
     rhdf5::h5closeAll()
 
@@ -152,7 +152,7 @@ read_h5_feature_meta <- function(h5_file,
                    target,
                    paste0("/",target))
 
-  h5_contents <- h5ls(h5_file)
+  h5_contents <- H5weaver::h5ls(h5_file)
   target_contents <- h5_contents[grepl(paste0("^",target), h5_contents$group),]
 
   h5_meta_targets <- character()
@@ -172,7 +172,7 @@ read_h5_feature_meta <- function(h5_file,
     meta_list <- lapply(h5_meta_targets,
                         function(x) {
                           rhdf5::h5read(h5_file,
-                                        x)
+                                               x)
                         })
     rhdf5::h5closeAll()
 
@@ -442,7 +442,7 @@ h5dump <- function(...) {
 h5dims <- function(h5_file,
                    name) {
 
-  h5_contents <- h5ls(h5_file)
+  h5_contents <- H5weaver::h5ls(h5_file)
 
   d <- h5_contents$dim[h5_contents$full_name == name]
   d <- unlist(strsplit(d, split = ","))

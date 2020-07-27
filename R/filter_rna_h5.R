@@ -341,7 +341,7 @@ add_h5_list_hash_results <- function(h5_list,
   assertthat::assert_that(sum(class(hash_category_table) %in% c("data.frame","data.table")) > 0)
 
   if(!is.null(hash_count_matrix)) {
-    assertthat::assert_that(class(hash_count_matrix) %in% c("dgCMatrix","matrix"))
+    assertthat::assert_that(sum(class(hash_count_matrix) %in% c("dgCMatrix","matrix")) > 0)
   }
 
   assertthat::assert_that(class(match_target) == "character")

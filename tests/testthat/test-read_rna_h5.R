@@ -56,7 +56,8 @@ test_that(
 
     h5_list_meta <- h5_list_cell_metadata(h5_list)
 
-    temp_h5 <- tempfile(pattern = ".h5")
+    temp_h5 <- tempfile(fileext = ".h5")
+
     write_h5_list(h5_list, temp_h5)
 
     h5_test_meta <- read_h5_cell_meta(temp_h5)
