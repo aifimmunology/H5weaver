@@ -412,7 +412,6 @@ create_ext_h5_float <- function(h5_handle,
 #'
 #' @return
 #'
-#' @examples
 write_10x_h5_container <- function(h5_file,
                                    cell_barcode_length = 15,
                                    data_type = "integer",
