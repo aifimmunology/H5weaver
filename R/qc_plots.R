@@ -44,12 +44,12 @@ qc_hist_plot <- function(meta,
     ggplot2::geom_histogram(ggplot2::aes(x = meta[[column]]),
                             binwidth = binwidth,
                             fill = fill) +
-    ggplot2::geom_vline(ggplot2::aes(xintercept = median(meta[[column]])),
+    ggplot2::geom_vline(ggplot2::aes(xintercept = stats::median(meta[[column]])),
                         linetype = "dashed",
                         color = "#000000") +
-    ggplot2::geom_text(ggplot2::aes(x = median(meta[[column]]) * .95,
+    ggplot2::geom_text(ggplot2::aes(x = stats::median(meta[[column]]) * .95,
                                     y = 1450,
-                                    label = paste0("median: ", median(meta[[column]]))),
+                                    label = paste0("median: ", stats::median(meta[[column]]))),
                        color = "#000000",
                        hjust = 1,
                        vjust = 1) +
@@ -120,12 +120,12 @@ qc_frac_hist_plot <- function(meta,
     ggplot2::geom_histogram(ggplot2::aes(x = meta[[column]]),
                             binwidth = binwidth,
                             fill = fill) +
-    ggplot2::geom_vline(ggplot2::aes(xintercept = median(meta[[column]])),
+    ggplot2::geom_vline(ggplot2::aes(xintercept = stats::median(meta[[column]])),
                         linetype = "dashed",
                         color = "#000000") +
-    ggplot2::geom_text(ggplot2::aes(x = median(meta[[column]]) * .95,
+    ggplot2::geom_text(ggplot2::aes(x = stats::median(meta[[column]]) * .95,
                                     y = 1450,
-                                    label = paste0("median: ", round(median(meta[[column]]), 3))),
+                                    label = paste0("median: ", round(stats::median(meta[[column]]), 3))),
                        color = "#000000",
                        hjust = 1,
                        vjust = 1) +
@@ -243,8 +243,8 @@ qc_scatter_plot <- function(meta,
   } else if(frac_x) {
     p <- p +
       ggplot2::scale_x_continuous(name_x,
-                             limits = c(0, 1),
-                             breaks = seq(0, 1, by = 0.1))
+                                  limits = c(0, 1),
+                                  breaks = seq(0, 1, by = 0.1))
   } else {
     p <- p +
       ggplot2::scale_x_continuous(name_x)
@@ -309,13 +309,13 @@ qc_violin_plot <- function(meta,
   tidy_y <- rlang::parse_expr(column_y)
 
   meta <- as.data.table(meta)
-  q_table <- meta[, .(q_25 = quantile(get(column_y), 0.25),
-                      q_50 = quantile(get(column_y), 0.50),
-                      q_75 = quantile(get(column_y), 0.75)),
+  q_table <- meta[, .(q_25 = stats::quantile(get(column_y), 0.25),
+                      q_50 = stats::quantile(get(column_y), 0.50),
+                      q_75 = stats::quantile(get(column_y), 0.75)),
                   by = get(category_x)]
   names(q_table)[1] <- category_x
 
-  global_median <- median(meta[[column_y]])
+  global_median <- stats::median(meta[[column_y]])
 
   p <- ggplot2::ggplot() +
     ggplot2::geom_violin(ggplot2::aes(x = as.factor(meta[[category_x]]),
@@ -336,9 +336,9 @@ qc_violin_plot <- function(meta,
     ggplot2::scale_color_identity() +
     ggplot2::scale_x_discrete(name_x) +
     ggplot2::theme_bw() +
-    theme(axis.text.x = element_text(angle = 90,
-                                     hjust = 1,
-                                     vjust = 0.3))
+    ggplot2::theme(axis.text.x = element_text(angle = 90,
+                                              hjust = 1,
+                                              vjust = 0.3))
 
 
   if(log_y) {
@@ -468,10 +468,10 @@ qc_stacked_barplot <- function(meta,
   names(plot_fills) <- category_y
   if(colorset_y == "rainbow") {
     set.seed(3030)
-    plot_fills$fill <- sample(rainbow(nrow(plot_fills)), nrow(plot_fills))
+    plot_fills$fill <- sample(grDevices::rainbow(nrow(plot_fills)), nrow(plot_fills))
   } else if(colorset_y == "varibow") {
     set.seed(3030)
-    plot_fills$fill <- sample(varibow(nrow(plot_fills)), nrow(plot_fills))
+    plot_fills$fill <- sample(H5weaver::varibow(nrow(plot_fills)), nrow(plot_fills))
   }
   plot_fills <- plot_fills[order(plot_fills[[category_y]]),]
 
@@ -571,10 +571,10 @@ qc_aligned_barplot <- function(meta,
   names(plot_fills) <- category_y
   if(colorset_y == "rainbow") {
     set.seed(3030)
-    plot_fills$fill <- sample(rainbow(nrow(plot_fills)), nrow(plot_fills))
+    plot_fills$fill <- sample(grDevices::rainbow(nrow(plot_fills)), nrow(plot_fills))
   } else if(colorset_y == "varibow") {
     set.seed(3030)
-    plot_fills$fill <- sample(varibow(nrow(plot_fills)), nrow(plot_fills))
+    plot_fills$fill <- sample(H5weaver::varibow(nrow(plot_fills)), nrow(plot_fills))
   }
   plot_fills <- plot_fills[order(plot_fills[[category_y]]),]
   count_table <- count_table[plot_fills, on = category_y]

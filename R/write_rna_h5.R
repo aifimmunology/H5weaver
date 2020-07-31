@@ -22,6 +22,10 @@ choose_integer_bits <- function(x) {
 
 #' Select a reasonable chunk size for an HDF5 dataset object
 #'
+#' If x has length > 1e6, chunks will be 1e5.
+#' If x has length > 1e2, chunks will be one log10 smaller than the length of x.
+#' If x has length <= 1e2, chunk size is the length of x.
+#'
 #' @param x A vector to store in an HDF5 file
 #'
 #' @return a numeric value containing a suggested chunk size
@@ -40,6 +44,13 @@ choose_chunk_size <- function(x) {
   }
 }
 
+#' Generate a set of attributes based on 10x Genomics defaults
+#'
+#' @param library_ids Library IDs to store as attributes. if NULL (default), will generate a random ID using date and ids::proquint().
+#'
+#' @return a list of attributes
+#' @export
+#'
 h5_attr_list <- function(library_ids = NULL) {
 
   attr_list <- list(chemistry_description = "Single Cell 3' v3",
@@ -82,7 +93,7 @@ write_h5_list <- function(h5_list,
   assertthat::assert_that(length(h5_file) == 1)
 
   if(is.null(h5_attributes)) {
-    h5_attributes <- h5_attr_list()
+    h5_attributes <- H5weaver::h5_attr_list()
   }
 
   if(!is.null(library_ids)) {
@@ -99,25 +110,36 @@ write_h5_list <- function(h5_list,
 
   if(is.null(h5_handle)) {
     if(!overwrite & !addon) {
+      # If we aren't overwriting or adding, check for file and halt if it exists.
+      # If it doesn't exist, create it.
+
       if(file.exists(h5_file)) {
         stop(paste(h5_file, "already exists."))
       } else {
         rhdf5::H5Fcreate(h5_file)
       }
+
     } else if(overwrite) {
+      # If we're overwriting, remove the old file and make a new one.
+      # Partial changes are performed by addon
+
+      # If overwrite and addon, overwrite takes precedence.
+
       if(file.exists(h5_file)) {
         file.remove(h5_file)
         rhdf5::H5Fcreate(h5_file)
       }
-    } else if(!addon) {
-      rhdf5::H5Fcreate(h5_file)
+
+    } else if(addon) {
+      # If addon, we don't need to create or remove the file.
+      # Keeping this condition to help with reasoning even though
+      # nothing happens here.
+      # We'll open below.
     } else {
       rhdf5::H5Fcreate(h5_file)
     }
-    print(file.exists(h5_file))
 
     h5_handle <- rhdf5::H5Fopen(h5_file)
-
   }
 
   # Add file attributes to match cellranger
@@ -162,30 +184,31 @@ write_h5_list <- function(h5_list,
         rhdf5::h5createGroup(h5_handle,
                              group = new_object)
         # Recurse function to write children of list
-        write_h5_list(h5_list[[h5_name]],
-                      h5_file = h5_file,
-                      h5_handle = h5_handle,
-                      h5_target = paste0(new_object,"/"),
-                      h5_attributes = h5_attributes,
-                      addon = addon)
+        H5weaver::write_h5_list(h5_list[[h5_name]],
+                                h5_file = h5_file,
+                                h5_handle = h5_handle,
+                                h5_target = paste0(new_object,"/"),
+                                h5_attributes = h5_attributes,
+                                addon = addon)
       } else if(class(h5_list[[h5_name]]) == "numeric") {
         rhdf5::h5createDataset(h5_handle,
                                dataset = new_object,
                                dims = list(length(h5_list[[h5_name]])),
-                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               chunk = H5weaver::choose_chunk_size(h5_list[[h5_name]]),
                                storage.mode = storage.mode(h5_list[[h5_name]]))
 
         rhdf5::h5write(obj = h5_list[[h5_name]],
                        file = h5_handle,
                        name = new_object)
+
       } else if(class(h5_list[[h5_name]]) == "integer") {
-        bits <- choose_integer_bits(h5_list[[h5_name]])
+        bits <- H5weaver::choose_integer_bits(h5_list[[h5_name]])
         h5_type <- paste0("H5T_NATIVE_UINT",bits)
 
         rhdf5::h5createDataset(h5_handle,
                                dataset = new_object,
                                dims = list(length(h5_list[[h5_name]])),
-                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               chunk = H5weaver::choose_chunk_size(h5_list[[h5_name]]),
                                H5type = h5_type)
 
         rhdf5::h5write(obj = h5_list[[h5_name]],
@@ -198,7 +221,7 @@ write_h5_list <- function(h5_list,
         rhdf5::h5createDataset(h5_handle,
                                dataset = new_object,
                                dims = list(length(h5_list[[h5_name]])),
-                               chunk = choose_chunk_size(h5_list[[h5_name]]),
+                               chunk = H5weaver::choose_chunk_size(h5_list[[h5_name]]),
                                storage.mode = storage.mode(h5_list[[h5_name]]),
                                size = max(nchar(h5_list[[h5_name]])) + 1)
 
@@ -258,25 +281,25 @@ write_ext_h5_character <- function(object,
   assertthat::assert_that(class(name) == "character")
   assertthat::assert_that(length(name) == 1)
 
-  h5_contents <- HTOparser::h5ls(h5_handle)
+  h5_contents <- H5weaver::h5ls(h5_handle)
 
   if(name %in% h5_contents$full_name) {
     if(h5_contents$dim == "0") {
-      append_ext_h5_character(object,
-                              h5_handle,
-                              name)
+      H5weaver::append_ext_h5_character(object,
+                                        h5_handle,
+                                        name)
     } else {
       rhdf5::h5write(object,
                      h5_handle,
                      name)
     }
 
-    create_ext_h5_character(h5_handle,
-                            name,
-                            size = max(nchar(object)))
-    append_ext_h5_character(object,
-                            h5_handle,
-                            name)
+    H5weaver::create_ext_h5_character(h5_handle,
+                                      name,
+                                      size = max(nchar(object)))
+    H5weaver::append_ext_h5_character(object,
+                                      h5_handle,
+                                      name)
   }
 
 }
@@ -306,14 +329,14 @@ append_ext_h5_character <- function(object,
     stop(paste(name, "does not exist. Use create_ext_h5_character() first."))
   }
 
-  current_size <- h5dims(h5_handle,
-                         name)
+  current_size <- H5weaver::h5dims(h5_handle,
+                                   name)
 
   new_size <- current_size + length(object)
 
-  expand_h5_dataset(h5_handle,
-                    name,
-                    new_size)
+  H5weaver::expand_h5_dataset(h5_handle,
+                              name,
+                              new_size)
 
   rhdf5::h5write(object,
                  h5_handle,
@@ -355,7 +378,7 @@ create_ext_h5_uint <- function(h5_handle,
   assertthat::assert_that(length(bits) %in% c(0,1))
 
   if(!is.null(max_val) & is.null(bits)) {
-    bits <- choose_integer_bits(max_val)
+    bits <- H5weaver::choose_integer_bits(max_val)
   } else if(!is.null(bits)) {
     if(typeof(bits) == "double") {
       assertthat::assert_that(bits %in% c(8,16,32,64))
@@ -441,41 +464,41 @@ write_10x_h5_container <- function(h5_file,
   rhdf5::h5createGroup(h5_handle, "/matrix/features")
 
   # default 10x cell metadata
-  create_ext_h5_character(h5_handle,
-                          name = "/matrix/barcodes",
-                          size = cell_barcode_length)
+  H5weaver::create_ext_h5_character(h5_handle,
+                                    name = "/matrix/barcodes",
+                                    size = cell_barcode_length)
 
   # default 10x feature metadata
-  create_ext_h5_character(h5_handle,
-                          name = "/matrix/features/feature_type",
-                          size = 24)
-  create_ext_h5_character(h5_handle,
-                          name = "/matrix/features/genome",
-                          size = 12)
+  H5weaver::create_ext_h5_character(h5_handle,
+                                    name = "/matrix/features/feature_type",
+                                    size = 24)
+  H5weaver::create_ext_h5_character(h5_handle,
+                                    name = "/matrix/features/genome",
+                                    size = 12)
   # ensembl gene ids, 15 characters
-  create_ext_h5_character(h5_handle,
-                          name = "/matrix/features/id",
-                          size = 15)
-  create_ext_h5_character(h5_handle,
-                          name = "/matrix/features/name",
-                          size = 24)
+  H5weaver::create_ext_h5_character(h5_handle,
+                                    name = "/matrix/features/id",
+                                    size = 15)
+  H5weaver::create_ext_h5_character(h5_handle,
+                                    name = "/matrix/features/name",
+                                    size = 24)
 
   # matrix data elements
   if(data_type == "integer") {
-    create_ext_h5_uint(h5_handle,
-                       name = "/matrix/data",
-                       bits = data_bits)
+    H5weaver::create_ext_h5_uint(h5_handle,
+                                 name = "/matrix/data",
+                                 bits = data_bits)
   } else if(data_type %in% c("float", "numeric")) {
-    create_ext_h5_float(h5_handle,
-                        name = "/matrix/data")
+    H5weaver::create_ext_h5_float(h5_handle,
+                                  name = "/matrix/data")
   }
 
-  create_ext_h5_uint(h5_handle,
-                     name = "/matrix/indices",
-                     bits = indices_bits)
-  create_ext_h5_uint(h5_handle,
-                     name = "/matrix/indptr",
-                     bits = indptr_bits)
+  H5weaver::create_ext_h5_uint(h5_handle,
+                               name = "/matrix/indices",
+                               bits = indices_bits)
+  H5weaver::create_ext_h5_uint(h5_handle,
+                               name = "/matrix/indptr",
+                               bits = indptr_bits)
 
   rhdf5::H5Fclose(h5_handle)
 }
@@ -513,8 +536,8 @@ expand_h5_dataset <- function(h5_file,
     h5_handle <- h5_file
   }
 
-  current_size <- h5dims(h5_handle,
-                         name)
+  current_size <- H5weaver::h5dims(h5_handle,
+                                   name)
 
   if(new_size <= current_size) {
     stop(paste("new_size", new_size, "is not greater than the current size of", name, ":", current_size))
@@ -529,6 +552,19 @@ expand_h5_dataset <- function(h5_file,
   rhdf5::H5Dclose(dset_handle)
 }
 
+#' Add a transposed version of a matrix to an .h5 file
+#'
+#' Useful for applications that need feature-indexed, rather than observation-indexed values.
+#'
+#' @param h5_file An existing .h5 file.
+#' @param in_target The name of the target matrix. Default is "matrix".
+#' @param in_feature_names The feature names to use in the transposed matrix. Default is "id".
+#' @param in_sample_names The observation names to use in the transposed matrix. Default is "barcodes".
+#' @param out_target The name of the output matrix to store. Default is "transposed_" prefixed to the in_target param (e.g. "transposed_matrix").
+#'
+#' @return No return
+#' @export
+#'
 add_h5_transposed_matrix <- function(h5_file,
                                      in_target = "matrix",
                                      in_feature_names = "id",
@@ -539,19 +575,19 @@ add_h5_transposed_matrix <- function(h5_file,
   assertthat::assert_that(length(h5_file) == 1)
   assertthat::assert_that(file.exists(h5_file))
 
-  mat <- read_h5_dgCMatrix(h5_file,
-                           target = target,
-                           feature_names = in_feature_names,
-                           sample_names = in_sample_names)
+  mat <- H5weaver::read_h5_dgCMatrix(h5_file,
+                                     target = target,
+                                     feature_names = in_feature_names,
+                                     sample_names = in_sample_names)
 
   mat <- list(Matrix::t(mat))
   names(mat) <- paste0(out_target,"_dgCMatrix")
 
-  mat <- h5_list_convert_from_dgCMatrix(mat,
-                                        target = out_target)
+  mat <- H5weaver::h5_list_convert_from_dgCMatrix(mat,
+                                                  target = out_target)
 
-  write_h5_list(mat,
-                h5_file = h5_file,
-                overwrite = FALSE,
-                addon = TRUE)
+  H5weaver::write_h5_list(mat,
+                          h5_file = h5_file,
+                          overwrite = FALSE,
+                          addon = TRUE)
 }

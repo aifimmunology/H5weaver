@@ -53,24 +53,24 @@ read_h5_dgCMatrix <- function(h5_file,
   }
 
   if(index1) {
-    mat <- sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
-                        i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")) + 1,
-                        p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
-                        index1 = index1,
-                        dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                        as.vector(rhdf5::h5read(h5_handle, colname_target))
-                        )
+    mat <- Matrix::sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
+                                i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")) + 1,
+                                p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
+                                index1 = index1,
+                                dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
+                                dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
+                                                as.vector(rhdf5::h5read(h5_handle, colname_target))
+                                )
     )
   } else {
-    mat <- sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
-                        i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")),
-                        p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
-                        index1 = index1,
-                        dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
-                        dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                        as.vector(rhdf5::h5read(h5_handle, colname_target))
-                        )
+    mat <- Matrix::sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
+                                i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")),
+                                p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
+                                index1 = index1,
+                                dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
+                                dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
+                                                as.vector(rhdf5::h5read(h5_handle, colname_target))
+                                )
     )
   }
 
@@ -116,9 +116,9 @@ read_h5_cell_meta <- function(h5_file,
 
   if(length(h5_meta_targets) > 0) {
     meta_list <- lapply(h5_meta_targets,
-                        function(x) {
+                        function(h5_meta_target) {
                           rhdf5::h5read(h5_file,
-                                               x)
+                                        h5_meta_target)
                         })
     rhdf5::h5closeAll()
 
@@ -170,9 +170,9 @@ read_h5_feature_meta <- function(h5_file,
 
   if(length(h5_meta_targets) > 0) {
     meta_list <- lapply(h5_meta_targets,
-                        function(x) {
+                        function(h5_meta_target) {
                           rhdf5::h5read(h5_file,
-                                               x)
+                                        h5_meta_target)
                         })
     rhdf5::h5closeAll()
 
@@ -252,7 +252,7 @@ read_h5_seurat <- function(h5_file,
                                    meta.data = cell_meta,
                                    ...)
   if(cite) {
-    so[["ADT"]] <- CreateAssayObject(counts = cite_mat)
+    so[["ADT"]] <- Seurat::CreateAssayObject(counts = cite_mat)
   }
 
   so
@@ -318,7 +318,7 @@ read_h5_sce <- function(h5_file,
     cite_se <- SummarizedExperiment::SummarizedExperiment(
       assays = list(counts = cite_mat)
     )
-    altExp(sce, "ADT") <- cite_se
+    SingleCellExperiment::altExp(sce, "ADT") <- cite_se
   }
 
   sce
@@ -415,7 +415,8 @@ convert_char_na_recursive <- function(x) {
 
 #' Dump all objects from an HDF5 file to a list.
 #'
-#' This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors.
+#' This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors
+#' and correctly handles NA values.
 #'
 #' @param ... parameters passed to rhdf5::h5dump()
 #'
