@@ -164,7 +164,7 @@ h5_list_transpose <- function(h5_list,
     if(use_feat) {
       feat <- h5_list[[mat]]$features
     }
-    h5_list <- h5_list_convert_to_dgCMatrix(h5_list,
+    h5_list <- H5weaver::h5_list_convert_to_dgCMatrix(h5_list,
                                             target = mat)
 
     sparse_mat <- paste0(mat, "_dgCMatrix")
@@ -177,7 +177,7 @@ h5_list_transpose <- function(h5_list,
       h5_list[[mat]]$observations <- feat[names(feat) != "id"]
     }
 
-    h5_list <- h5_list_convert_from_dgCMatrix(h5_list,
+    h5_list <- H5weaver::h5_list_convert_from_dgCMatrix(h5_list,
                                               target = mat)
 
   }

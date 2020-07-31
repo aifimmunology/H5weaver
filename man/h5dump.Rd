@@ -13,5 +13,6 @@ h5dump(...)
 a list object with the contents of the target HDF5 file
 }
 \description{
-This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors.
+This is a wrapper around rhdf5::h5dump() that converts all 1D arrays to vectors
+and correctly handles NA values.
 }

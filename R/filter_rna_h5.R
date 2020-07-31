@@ -34,33 +34,33 @@ add_cell_ids <- function(h5_list,
 
     if(replace_barcode) {
       if(retain_original_barcode) {
-        h5_list <- set_list_path(h5_list,
-                                 paste0("/",target,"/observations/original_barcodes"),
-                                 sub("-1","",h5_list[[target]]$barcodes))
+        h5_list <- H5weaver::set_list_path(h5_list,
+                                           paste0("/",target,"/observations/original_barcodes"),
+                                           sub("-1","",h5_list[[target]]$barcodes))
       }
       # matrix$barcodes is used for column ids by most functions that read 10x HDF5 files.
       h5_list[[target]]$barcodes <- ids::uuid(n = length(h5_list[[target]]$barcodes),
-                                           drop_hyphens = TRUE,
-                                           use_time = TRUE)
-      h5_list <- set_list_path(h5_list,
-                               paste0("/",target,"/observations/cell_uuid"),
-                               h5_list[[target]]$barcodes)
+                                              drop_hyphens = TRUE,
+                                              use_time = TRUE)
+      h5_list <- H5weaver::set_list_path(h5_list,
+                                         paste0("/",target,"/observations/cell_uuid"),
+                                         h5_list[[target]]$barcodes)
     } else {
-      h5_list <- set_list_path(h5_list,
-                               paste0("/",target,"/observations/cell_uuid"),
-                               ids::uuid(n = length(h5_list[[target]]$barcodes),
-                                         drop_hyphens = TRUE,
-                                         use_time = TRUE))
+      h5_list <- H5weaver::set_list_path(h5_list,
+                                         paste0("/",target,"/observations/cell_uuid"),
+                                         ids::uuid(n = length(h5_list[[target]]$barcodes),
+                                                   drop_hyphens = TRUE,
+                                                   use_time = TRUE))
     }
 
   }
 
   if(add_name) {
-    h5_list <- set_list_path(h5_list,
-                             paste0("/",target,"/observations/cell_name"),
-                             ids::adjective_animal(n = length(h5_list[[target]]$barcodes),
-                                                   n_adjectives = 2,
-                                                   max_len = 10))
+    h5_list <- H5weaver::set_list_path(h5_list,
+                                       paste0("/",target,"/observations/cell_name"),
+                                       ids::adjective_animal(n = length(h5_list[[target]]$barcodes),
+                                                             n_adjectives = 2,
+                                                             max_len = 10))
   }
 
   h5_list
@@ -94,18 +94,18 @@ add_well_metadata <- function(h5_list,
 
   n_cells <- length(h5_list$matrix$barcodes)
 
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/well_id",
-                           rep(well_id, n_cells))
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/chip_id",
-                           rep(chip_id, n_cells))
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/pool_id",
-                           rep(pool_id, n_cells))
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/batch_id",
-                           rep(batch_id, n_cells))
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/well_id",
+                                     rep(well_id, n_cells))
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/chip_id",
+                                     rep(chip_id, n_cells))
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/pool_id",
+                                     rep(pool_id, n_cells))
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/batch_id",
+                                     rep(batch_id, n_cells))
 
   h5_list
 }
@@ -122,13 +122,13 @@ h5_list_add_mito_umis <- function(h5_list) {
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("matrix" %in% names(h5_list))
 
-  chrM_genes <- fread(system.file("reference/GRCh38_10x_chrM_gene_metadata.csv.gz",
-                                  package = "H5weaver"))
+  chrM_genes <- data.table::fread(system.file("reference/GRCh38_10x_chrM_gene_metadata.csv.gz",
+                                              package = "H5weaver"))
 
   reconvert_matrix <- FALSE
   if(!"matrix_dgCMatrix" %in% names(h5_list)) {
-    h5_list <- h5_list_convert_to_dgCMatrix(h5_list,
-                                            target = "matrix")
+    h5_list <- H5weaver::h5_list_convert_to_dgCMatrix(h5_list,
+                                                      target = "matrix")
     reconvert_matrix <- TRUE
   }
 
@@ -143,13 +143,13 @@ h5_list_add_mito_umis <- function(h5_list) {
   mito_umis <- Matrix::colSums(h5_list$matrix_dgCMatrix[common_mito_ids,])
   names(mito_umis) <- NULL
 
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/n_mito_umis",
-                           mito_umis)
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/n_mito_umis",
+                                     mito_umis)
 
   if(reconvert_matrix) {
-    h5_list <- h5_list_convert_from_dgCMatrix(h5_list,
-                                              target = "matrix")
+    h5_list <- H5weaver::h5_list_convert_from_dgCMatrix(h5_list,
+                                                        target = "matrix")
   }
 
   h5_list
@@ -293,8 +293,8 @@ subset_h5_list_by_observations <- function(h5_list,
 
   if(length(unconverted_matrices) > 0) {
     for(unconverted in unconverted_matrices) {
-      h5_list <- h5_list_convert_to_dgCMatrix(h5_list,
-                                              unconverted)
+      h5_list <- H5weaver::h5_list_convert_to_dgCMatrix(h5_list,
+                                                        unconverted)
     }
   }
 
@@ -313,8 +313,8 @@ subset_h5_list_by_observations <- function(h5_list,
 
   if(length(unconverted_matrices) > 0) {
     for(unconverted in unconverted_matrices) {
-      h5_list <- h5_list_convert_from_dgCMatrix(h5_list,
-                                                unconverted)
+      h5_list <- H5weaver::h5_list_convert_from_dgCMatrix(h5_list,
+                                                          unconverted)
     }
   }
 
@@ -333,9 +333,9 @@ subset_h5_list_by_observations <- function(h5_list,
 #' @export
 #'
 add_h5_list_hash_results <- function(h5_list,
-                             hash_category_table,
-                             hash_count_matrix,
-                             match_target = "barcodes") {
+                                     hash_category_table,
+                                     hash_count_matrix,
+                                     match_target = "barcodes") {
 
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that(sum(class(hash_category_table) %in% c("data.frame","data.table")) > 0)
@@ -361,14 +361,14 @@ add_h5_list_hash_results <- function(h5_list,
                                                  hash_category_table$cell_barcode),]
 
   # Convert matrix to dgCMatrix for filtering
-  h5_list <- h5_list_convert_to_dgCMatrix(h5_list,
-                                          target = "matrix")
+  h5_list <- H5weaver::h5_list_convert_to_dgCMatrix(h5_list,
+                                                    target = "matrix")
 
   # Filter the h5_list based on common barcodes
-  h5_list <- subset_h5_list_by_observations(h5_list,
-                                            match_values = common_barcodes,
-                                            match_target = match_target,
-                                            sparse_matrices = "matrix")
+  h5_list <- H5weaver::subset_h5_list_by_observations(h5_list,
+                                                      match_values = common_barcodes,
+                                                      match_target = match_target,
+                                                      sparse_matrices = "matrix")
 
   if(is.null(hash_count_matrix)) {
     # If there's no hash count matrix, we only need to filter matrix as sparse
@@ -388,22 +388,22 @@ add_h5_list_hash_results <- function(h5_list,
     sparse_matrices <- c("matrix","hash")
   }
 
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/hto_category",
-                           common_hash_table$hto_category)
-  h5_list <- set_list_path(h5_list,
-                           "/matrix/observations/hto_barcode",
-                           common_hash_table$hto_barcode)
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/hto_category",
+                                     common_hash_table$hto_category)
+  h5_list <- H5weaver::set_list_path(h5_list,
+                                     "/matrix/observations/hto_barcode",
+                                     common_hash_table$hto_barcode)
 
   if("pbmc_sample_id" %in% names(common_hash_table)) {
-    h5_list <- set_list_path(h5_list,
-                             "/matrix/observations/pbmc_sample_id",
-                             common_hash_table$pbmc_sample_id)
+    h5_list <- H5weaver::set_list_path(h5_list,
+                                       "/matrix/observations/pbmc_sample_id",
+                                       common_hash_table$pbmc_sample_id)
   }
 
   for(sparse_matrix in sparse_matrices) {
-    h5_list <- h5_list_convert_from_dgCMatrix(h5_list,
-                                              target = sparse_matrix)
+    h5_list <- H5weaver::h5_list_convert_from_dgCMatrix(h5_list,
+                                                        target = sparse_matrix)
   }
 
   h5_list
@@ -422,7 +422,7 @@ split_h5_list_by_hash <- function(h5_list) {
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that("hto_category" %in% names(h5_list$matrix$observations))
 
-  meta <- h5_list_cell_metadata(h5_list)
+  meta <- H5weaver::h5_list_cell_metadata(h5_list)
 
   # Separate singlets from non-singlets
   singlet_meta <- meta[meta$hto_category == "singlet",]
@@ -443,10 +443,12 @@ split_h5_list_by_hash <- function(h5_list) {
     }
 
     # Subset the h5_list for this barcode using barcode_target and sparse_matrices, defined above in this function
-    split_h5_list[[barcode]] <- subset_h5_list_by_observations(h5_list,
-                                                               match_values = hto_meta$barcodes,
-                                                               match_target = "barcodes",
-                                                               sparse_matrices = c("matrix","hash"))
+    split_h5_list[[barcode]] <- H5weaver::subset_h5_list_by_observations(
+      h5_list,
+      match_values = hto_meta$barcodes,
+      match_target = "barcodes",
+      sparse_matrices = c("matrix","hash")
+    )
 
   }
 
@@ -473,7 +475,7 @@ cat_h5_list <- function (x, y) {
 
     if(class(x[[v]]) == "list") {
       # If the target is a list, recurse to the next level
-      x[[v]] <- cat_h5_list(x[[v]], y[[v]])
+      x[[v]] <- H5weaver::cat_h5_list(x[[v]], y[[v]])
     } else if(class(x[[v]]) == "dgCMatrix") {
       # If it's a dgCMatrix, perform a cbind
       x[[v]] <- cbind(x[[v]], y[[v]])
@@ -501,21 +503,21 @@ reduce_h5_list <- function(h5_ll,
 
   for(i in seq_along(sparse_matrices)) {
     h5_ll <- lapply(h5_ll,
-                    h5_list_convert_to_dgCMatrix,
+                    H5weaver::h5_list_convert_to_dgCMatrix,
                     sparse_matrices[i])
   }
 
   out_list <- h5_ll[[1]]
   for(i in 2:length(h5_ll)) {
-    out_list <- cat_h5_list(out_list, h5_ll[[i]])
+    out_list <- H5weaver::cat_h5_list(out_list, h5_ll[[i]])
   }
 
   for(i in seq_along(sparse_matrices)) {
     # Exception here for "features", which shouldn't be concatenated.
     out_list[[sparse_matrices[i]]]$features <- h5_ll[[1]][[sparse_matrices[i]]]$features
 
-    out_list <- h5_list_convert_from_dgCMatrix(out_list,
-                                               target = sparse_matrices[i])
+    out_list <- H5weaver::h5_list_convert_from_dgCMatrix(out_list,
+                                                         target = sparse_matrices[i])
   }
 
   out_list

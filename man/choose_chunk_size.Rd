@@ -13,5 +13,7 @@ choose_chunk_size(x)
 a numeric value containing a suggested chunk size
 }
 \description{
-Select a reasonable chunk size for an HDF5 dataset object
+If x has length > 1e6, chunks will be 1e5.
+If x has length > 1e2, chunks will be one log10 smaller than the length of x.
+If x has length <= 1e2, chunk size is the length of x.
 }
