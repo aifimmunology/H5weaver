@@ -579,7 +579,7 @@ qc_aligned_barplot <- function(meta,
   plot_fills <- plot_fills[order(plot_fills[[category_y]]),]
   count_table <- count_table[plot_fills, on = category_y]
 
-  group_maxes <- count_table[, .(group_max = max(n_cells)), by = get(category_y)]
+  group_maxes <- count_table[, .(group_max = max(n_cells)), by = list(get(category_y))]
   names(group_maxes)[1] <- category_y
   group_maxes <- group_maxes[order(get(category_y), decreasing = TRUE)]
   group_maxes <- group_maxes[, cum_max := cumsum(group_max)]
