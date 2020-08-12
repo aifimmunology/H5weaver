@@ -146,11 +146,16 @@ for(i in seq_along(unique_hashes)) {
     }
   }
   
-  h5_ll <- lapply(current_files,
-                  h5dump)
-  
-  h5_list <- reduce_h5_list(h5_ll,
-                            sparse_matrices = c("matrix","hash"))
+  if(length(current_files) > 1) {
+    h5_ll <- lapply(current_files,
+                    h5dump)
+    
+    h5_list <- reduce_h5_list(h5_ll,
+                              sparse_matrices = c("matrix","hash"))
+    
+  } else {
+    h5_list <- h5dump(current_files)
+  }
   
   meta_list[[current_hash]] <- h5_list_cell_metadata(h5_list)
   
