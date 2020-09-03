@@ -75,6 +75,8 @@ h5_attr_list <- function(library_ids = NULL) {
 #' @param overwrite a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.
 #' @param h5_handle an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.
 #' @param h5_target a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.
+#' @param h5_attributes a list of attributes to add to an .h5 file to try to imitate 10x Genomics outputs. If NULL (default), will be skipped. "tenx" uses in-built data from 'h5_attr_list()'.
+#' @param library_ids a character vector of library ids to add to attributes. Only used if h5_attributes != NULL. Default is NULL.
 #'
 #' @return Writes a file; no return to R.
 #' @export
@@ -92,8 +94,10 @@ write_h5_list <- function(h5_list,
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
 
-  if(is.null(h5_attributes)) {
-    h5_attributes <- H5weaver::h5_attr_list()
+  if(!is.null(h5_attributes)) {
+    if(h5_attributes  == "tenx") {
+      h5_attributes <- H5weaver::h5_attr_list()
+    }
   }
 
   if(!is.null(library_ids)) {
@@ -127,8 +131,9 @@ write_h5_list <- function(h5_list,
 
       if(file.exists(h5_file)) {
         file.remove(h5_file)
-        rhdf5::H5Fcreate(h5_file)
       }
+
+      rhdf5::H5Fcreate(h5_file)
 
     } else if(addon) {
       # If addon, we don't need to create or remove the file.
@@ -155,7 +160,7 @@ write_h5_list <- function(h5_list,
 
       rhdf5::H5Dclose(base_obj)
     }
-    h5_attributes <- "__completed__"
+    h5_attributes <- NULL
   }
 
 
