@@ -280,6 +280,9 @@ qc_scatter_plot <- function(meta,
 #' @param fill A character object specifying the fill color to use for for the violins. Default is "skyblue".
 #'
 #' @return a ggplot2 plot object
+#'
+#' @importFrom rlang parse_expr !!
+#'
 #' @export
 qc_violin_plot <- function(meta,
                            category_x = "well_id",
