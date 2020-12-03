@@ -25,6 +25,10 @@ write_h5_list(
 \item{h5_handle}{an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.}
 
 \item{h5_target}{a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.}
+
+\item{h5_attributes}{a list of attributes to add to an .h5 file to try to imitate 10x Genomics outputs. If NULL (default), will be skipped. "tenx" uses in-built data from 'h5_attr_list()'.}
+
+\item{library_ids}{a character vector of library ids to add to attributes. Only used if h5_attributes != NULL. Default is NULL.}
 }
 \value{
 Writes a file; no return to R.
