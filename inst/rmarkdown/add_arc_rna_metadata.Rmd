@@ -86,7 +86,7 @@ if(is.null(params$in_h5)) {
   out_dir <- params$out_dir
 }
 
-in_well <- sub("-[AHR]P","-P",in_well)
+in_well <- sub("-[AHMR]P","-P",in_well)
 
 # Check Well ID format
 if(!grepl("^[A-Z][0-9]{3}-P[0-9]C[0-9]W[0-9]$", in_well)) {
@@ -268,7 +268,7 @@ if(! "cell_uuid" %in% names(pbm)) {
 
 # filter and sort per_barcode_metrics to match h5_list
 pbm$barcode <- sub("-1","",pbm$barcode)
-pbm <- pbm[match(pbm$barcode, h5_list$observations$original_barcode),]
+pbm <- pbm[match(h5_list$matrix$observations$original_barcode, pbm$barcode),]
 
 # Replace barcodes with joint UUIDs
 h5_list <- set_list_path(h5_list,
