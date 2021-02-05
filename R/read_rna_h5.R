@@ -143,6 +143,7 @@ read_h5_cell_meta <- function(h5_file,
 #'
 #' @return a data.frame containing all feature metadata found in /target/features/
 #' @export
+#'
 read_h5_feature_meta <- function(h5_file,
                                  target = "matrix") {
   assertthat::assert_that(is.character(h5_file))
