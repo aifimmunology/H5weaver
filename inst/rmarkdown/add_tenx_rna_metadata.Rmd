@@ -221,11 +221,51 @@ h5_list <- set_list_path(h5_list,
 
 ### Assemble data
 
+#### Split matrices if more than one feature type is present
+
+```{r split_matrices}
+h5_list <- h5_list_convert_to_dgCMatrix(h5_list, target = "matrix")
+
+feature_types <- unique(h5_list$matrix$features$feature_type)
+
+if(sum(feature_types != "Gene Expression") > 0) {
+  stm("Separating non-Gene Expression data to additional matrices")
+  
+  mat <- h5_list$matrix_dgCMatrix
+  
+  feature_df <- as.data.frame(h5_list$matrix$features)
+  
+  h5_list$matrix_dgCMatrix <- mat[feature_df$feature_type == "Gene Expression",]
+  h5_list$matrix$features <- as.list(feature_df[feature_df$feature_type == "Gene Expression",])
+  
+  if("Antibody Capture" %in% feature_types) {
+    h5_list$ADT_dgCMatrix <- mat[feature_df$feature_type == "Antibody Capture",]
+    h5_list$ADT <- list(features = as.list(feature_df[feature_df$feature_type == "Antibody Capture",]))
+    h5_list$ADT$observations <- list(
+      n_umis <- unname(colSums(h5_list$ADT_dgCMatrix))
+    )
+    
+    h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "ADT")
+  }
+  
+  if("Peaks" %in% feature_types) {
+    h5_list$peaks_dgCMatrix <- mat[feature_df$feature_type == "Peaks",]
+    h5_list$peaks <- list(features = as.list(feature_df[feature_df$feature_type == "Peaks",]))
+    h5_list$ADT$observations <- list(
+      n_umis <- unname(colSums(h5_list$peaks_dgCMatrix)),
+      n_peaks <- unname(colSums(h5_list$peaks_dgCMatrix > 0))
+    )
+    
+    h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "peaks")
+  }
+  
+}
+```
+
+
 #### Compute N UMIs and N Genes per cell
 ```{r n_umi and n_genes}
 stm("Computing UMI and Gene Counts per Cell")
-
-h5_list <- h5_list_convert_to_dgCMatrix(h5_list, target = "matrix")
 
 h5_list <- set_list_path(h5_list,
                          "/matrix/observations/n_umis",
@@ -242,11 +282,11 @@ h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "matrix")
 ```{r}
 stm("Adding Cell UUIDs and Names")
 
-h5_list <-add_cell_ids(h5_list,
-                       add_uuid = TRUE,
-                       replace_barcode = TRUE,
-                       retain_original_barcode = TRUE,
-                       add_name = TRUE)
+h5_list <- add_cell_ids(h5_list,
+                        add_uuid = TRUE,
+                        replace_barcode = TRUE,
+                        retain_original_barcode = TRUE,
+                        add_name = TRUE)
 ```
 
 #### Generate Chip, Pool, and Batch IDs based on well_id
@@ -278,7 +318,6 @@ h5_list <- set_list_path(h5_list,
                          "/well/well_id",
                          in_well)
 ```
-
 
 [Return to Contents](#contents)
 
