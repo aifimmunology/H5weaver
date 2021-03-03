@@ -635,19 +635,26 @@ qc_aligned_barplot <- function(meta,
 #' Generate a rainbow palette with variation in saturation and value
 #'
 #' @param n_colors The number of colors to generate
-#'
+#' @param alpha The alpha for the palette. if NULL, alpha hex values are trimmed. Default = 1.
+#' 
 #' @return a character vector of hex color values of length n_colors.
 #' @export
 #'
-varibow <- function(n_colors) {
+varibow <- function(n_colors, alpha = 1) {
+  sats <- rep_len(c(0.55,0.7,0.85,1),length.out = n_colors)
+  vals <- rep_len(c(1,0.8,0.6),length.out = n_colors)
+  clrs <- grDevices::rainbow(n_colors, 
+                             s = sats, 
+                             v = vals,
+                             alpha = alpha)
+  if(is.null(alpha)) {
+    if(nchar(clrs[1]) == 9) {
+      clrs <- sapply(clrs, 
+                     function(clr) {
+                       substr(clr, 1, 7)
+                     })
+    }
+  }
 
-  assertthat::assert_that(is.numeric(n_colors))
-  assertthat::assert_that(n_colors %% 1 == 0)
-  assertthat::assert_that(length(n_colors) == 1)
-
-  sats <- rep_len(c(0.55, 0.7, 0.85, 1), length.out = n_colors)
-  vals <- rep_len(c(1, 0.8, 0.6), length.out = n_colors)
-  sub("FF$", "", grDevices::rainbow(n_colors,
-                                    s = sats,
-                                    v = vals))
+  clrs
 }
