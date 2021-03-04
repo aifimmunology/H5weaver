@@ -280,10 +280,14 @@ if(sum(feature_types != "Gene Expression") > 0) {
   
   mat <- h5_list$matrix_dgCMatrix
   
-  feature_df <- as.data.frame(h5_list$matrix$features)
+  feature_list <- h5_list$matrix$features
+  atk <- feature_list[["_all_tag_keys_"]]
+  feature_list[names(feature_list) == "_all_tag_keys_"] <- NULL
+  feature_df <- as.data.frame(feature_list)
   
   h5_list$matrix_dgCMatrix <- mat[feature_df$feature_type == "Gene Expression",]
   h5_list$matrix$features <- as.list(feature_df[feature_df$feature_type == "Gene Expression",])
+  h5_list$matrix$features[["_all_tag_keys_"]] <- atk
   
   if("Antibody Capture" %in% feature_types) {
     h5_list$ADT_dgCMatrix <- mat[feature_df$feature_type == "Antibody Capture",]
