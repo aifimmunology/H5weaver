@@ -476,8 +476,13 @@ cat_h5_list <- function (x, y) {
       # If the target is a list, recurse to the next level
       x[[v]] <- H5weaver::cat_h5_list(x[[v]], y[[v]])
     } else if(class(x[[v]]) == "dgCMatrix") {
-      # If it's a dgCMatrix, perform a cbind
-      x[[v]] <- cbind(x[[v]], y[[v]])
+      # If it's a dgCMatrix, check for compatibility and perform a cbind
+      if(nrow(x[[v]]) == nrow(y[[v]])) {
+        x[[v]] <- cbind(x[[v]], y[[v]])
+      } else {
+        x_name <- names(x)[v]
+        H5weaver::stm(paste0("Can't merge ",x_name," because of incompatible rows. Skipping."))
+      }
     } else {
       # If it's a vector, use c to combine.
       x[[v]] <- c(as.vector(x[[v]]), as.vector(y[[v]]))
