@@ -142,6 +142,17 @@ if(is.null(in_tenx)) {
   arc_sum <- file.path(in_tenx, "rna_summary.csv")
   rna_sum <- file.path(in_tenx, "summary.csv")
   
+  if(file.exists(arc_sum)) {
+    stm(paste("Found rna_summary.csv file:",arc_sum))
+    in_sum <- arc_sum
+  } else if(file.exists(rna_sum)) {
+    stm(paste("Found summary.csv file:",rna_sum))
+    in_sum <- rna_sum
+  } else {
+    stm(paste("No summary.csv file located in", in_tenx))
+    stop()
+  }
+  
   # per-barcode metrics file
   in_sin <- file.path(in_tenx, "arc_singlecell.csv")
   
