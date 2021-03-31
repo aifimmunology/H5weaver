@@ -84,10 +84,7 @@ if(!grepl("^[A-Z][0-9]{3}-P[0-9]C[0-9]W[0-9]$", in_well)) {
   stop()
 }
 
-stm(paste0("IN  H5 file             : ", in_h5))
-stm(paste0("IN  Mol Info H5         : ", in_mol))
-stm(paste0("IN  Metrics Summary     : ", in_sum))
-stm(paste0("IN  Per Barcode Metrics : ", in_pbm))
+stm(paste0("IN  10x outs/ path      : ", in_tenx))
 stm(paste0("IN  SampleSheet         : ", in_key))
 stm(paste0("IN  Well ID             : ", in_well))
 stm(paste0("OUT H5 directory        : ", out_dir))
@@ -96,10 +93,7 @@ stm(paste0("OUT H5 directory        : ", out_dir))
 #### Input Parameters
 ```{r Print Arguments}
 print(c(
-  paste0("IN  H5 file             : ", in_h5),
-  paste0("IN  Mol Info H5         : ", in_mol),
-  paste0("IN  Metrics Summary     : ", in_sum),
-  paste0("IN  Per Barcode Metrics : ", in_pbm),
+  paste0("IN  10x outs/ path      : ", in_h5),
   paste0("IN  SampleSheet         : ", in_key),
   paste0("IN  Well ID             : ", in_well),
   paste0("OUT H5 directory        : ", out_dir)
