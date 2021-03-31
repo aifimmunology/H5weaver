@@ -151,7 +151,7 @@ if(is.null(in_tenx)) {
   in_sin <- file.path(in_tenx, "arc_singlecell.csv")
   
   if(file.exists(in_sin)) {
-    stm(paste("Found arc_singlecell.csv file:",arc_sin))
+    stm(paste("Found arc_singlecell.csv file:",in_sin))
     stm("Proceeding as 10x Arc run.")
     run_type <- "arc"
   } else {
