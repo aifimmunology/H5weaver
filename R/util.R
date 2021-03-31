@@ -213,7 +213,14 @@ read_tenx_metrics <- function(metrics_csv) {
                       gsub("[,%]","",x)
                     })
   metrics <- lapply(metrics,
-                    as.numeric)
+                    function(x) {
+                      y <- suppressWarnings(as.numeric(x))
+                      if(is.na(y)) {
+                        x
+                      } else {
+                        y
+                      }
+                    })
 
   as.data.frame(metrics)
 
