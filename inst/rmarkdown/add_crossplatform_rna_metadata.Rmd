@@ -277,12 +277,12 @@ if(run_type == "arc") {
   }
   
   # filter and sort barcode_metrics to match h5_list
-  sc <- sc[match(h5_list$matrix$observations$original_barcode, sc$original_barcode),]
+  sc <- sc[match(h5_list$matrix$observations$original_barcode, sub("-1$","",sc$barcode)),]
   
   # Replace barcodes with joint UUIDs
   h5_list <- set_list_path(h5_list,
                            "/matrix/barcodes",
-                           unlist(sc$barcodes))
+                           unlist(sc$cell_id))
   
   # Shift cell_uuid in h5_list to rna_cell_uuid
   h5_list <- set_list_path(h5_list,
