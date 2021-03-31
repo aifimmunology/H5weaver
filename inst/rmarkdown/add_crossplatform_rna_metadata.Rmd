@@ -150,7 +150,7 @@ if(is.null(in_tenx)) {
   # per-barcode metrics file
   in_sin <- file.path(in_tenx, "arc_singlecell.csv")
   
-  if(file.exists(in_in)) {
+  if(file.exists(in_sin)) {
     stm(paste("Found arc_singlecell.csv file:",arc_sin))
     stm("Proceeding as 10x Arc run.")
     run_type <- "arc"
