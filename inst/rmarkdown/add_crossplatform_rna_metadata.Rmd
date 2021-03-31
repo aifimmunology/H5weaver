@@ -93,7 +93,7 @@ stm(paste0("OUT H5 directory        : ", out_dir))
 #### Input Parameters
 ```{r Print Arguments}
 print(c(
-  paste0("IN  10x outs/ path      : ", in_h5),
+  paste0("IN  10x outs/ path      : ", in_tenx),
   paste0("IN  SampleSheet         : ", in_key),
   paste0("IN  Well ID             : ", in_well),
   paste0("OUT H5 directory        : ", out_dir)
