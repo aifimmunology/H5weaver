@@ -272,7 +272,7 @@ if(run_type == "arc") {
   
   sc <- fread(in_sin)
   
-  if(! "original_barcodes" %in% names(sc)) {
+  if(sc$cell_id[1] == "None") {
     stop("Missing barcode formatting. See 00_arc_format.sh in tenx-atacseq-pipeline.")
   }
   
