@@ -7,8 +7,7 @@
 subset_h5_list_by_observations(
   h5_list,
   match_values,
-  match_target = "barcodes",
-  sparse_matrices = "matrix"
+  match_target = "barcodes"
 )
 }
 \arguments{
@@ -17,8 +16,6 @@ subset_h5_list_by_observations(
 \item{match_values}{a vector of values to use for filtering}
 
 \item{match_target}{a character object specifying which values to use for filtering in the h5_list. If "barcodes", uses matrix/barcodes; Otherwise, looks in matrix/observations for matching values}
-
-\item{sparse_matrices}{a character vector specifying which list objects to treat as sparse matrices. If these aren't currently dgCMatrices, they will be converted by h5_list_convert_to_dgCMatrix for filtering.}
 }
 \value{
 a list object

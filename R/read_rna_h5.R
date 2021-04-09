@@ -2,7 +2,7 @@
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target a character object specifying the target matrix within the file. Default is "matrix".
-#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
+#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "name".
 #' @param sample_names a character object specifying which values to use for col.names. If "barcodes", will use /target/barcodes. Other values will be read from /target/observations/
 #' @param index1 a logical object specifying whether index vectors should start with 0 (FALSE) or 1 (TRUE). Default is TRUE.
 #'
@@ -11,7 +11,7 @@
 #'
 read_h5_dgCMatrix <- function(h5_file,
                               target = "matrix",
-                              feature_names = "id",
+                              feature_names = "name",
                               sample_names = "barcodes",
                               index1 = TRUE) {
 
@@ -199,14 +199,14 @@ read_h5_feature_meta <- function(h5_file,
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
-#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "id".
+#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "name".
 #' @param ... Additional parameters passed to \code{\link{Seurat::createSeuratObject}}
 #'
 #' @return a Seurat Class object
 #' @export
 read_h5_seurat <- function(h5_file,
                            target = "matrix",
-                           feature_names = "id",
+                           feature_names = "name",
                            ...) {
 
   if(!requireNamespace("Seurat", versionCheck = list(op = ">=", version = "3.1.0"))) {
@@ -267,23 +267,26 @@ read_h5_seurat <- function(h5_file,
 #'
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
+#' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "name".
 #' @param ... Additional parameters passed to \code{\link{SingleCellExperiment::SingleCellExperiment()}}
 #'
 #' @return a SingleCellExperiment Class object
 #' @export
 read_h5_sce <- function(h5_file,
                         target = "matrix",
+                        feature_names = "name",
                         ...) {
 
   if(!requireNamespace("SingleCellExperiment", versionCheck = list(op = ">=", version = "1.8.0"))) {
-    stop("Can't find the SingleCellExperiment package. Please install with BiocManater::install(\"SingleCellExperiment\")")
+    stop("Can't find the SingleCellExperiment package. Please install with BiocManager::install(\"SingleCellExperiment\")")
   }
 
   assertthat::assert_that(is.character(h5_file))
   assertthat::assert_that(length(h5_file) == 1)
 
   mat <- read_h5_dgCMatrix(h5_file,
-                           target = target)
+                           target = target,
+                           feature_names = feature_names)
 
   cell_meta <- read_h5_cell_meta(h5_file,
                                  target = target)
