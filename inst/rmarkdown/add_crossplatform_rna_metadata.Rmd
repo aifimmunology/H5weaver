@@ -9,10 +9,7 @@ output:
     df_print: paged
     self_contained: true
 params:
-  in_h5: NULL
-  in_mol: NULL
-  in_sum: NULL
-  in_pbm: NULL
+  in_tenx: NULL
   in_key: NULL
   in_well: NULL
   out_dir: NULL
@@ -68,19 +65,12 @@ stm("Starting .h5 metadata analysis")
 
 #### Argument parsing
 ```{r Parse arguments}
-if(is.null(params$in_h5)) {
-  in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
-  in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
-  in_sum <- system.file("testdata/well1_metrics_summary.csv", package = "H5weaver")
-  in_pbm <- system.file("testdata/well1_per_barcode_metrics_summary.csv", package = "H5weaver")
+if(is.null(params$in_tenx)) {
   in_key <- system.file("reference/SampleSheet_fallback.csv", package = "H5weaver")
   in_well <- "B000-P0C0W0"
   out_dir <- tempdir()
 } else {
-  in_h5 <- params$in_h5
-  in_mol <- params$in_mol
-  in_sum <- params$in_sum
-  in_pbm <- params$in_pbm
+  in_tenx <- params$in_tenx
   in_key <- params$in_key
   in_well <- params$in_well
   out_dir <- params$out_dir
@@ -94,10 +84,7 @@ if(!grepl("^[A-Z]+[0-9]+-.?P[0-9]C[0-9]W[0-9]$", in_well)) {
   stop()
 }
 
-stm(paste0("IN  H5 file             : ", in_h5))
-stm(paste0("IN  Mol Info H5         : ", in_mol))
-stm(paste0("IN  Metrics Summary     : ", in_sum))
-stm(paste0("IN  Per Barcode Metrics : ", in_pbm))
+stm(paste0("IN  10x outs/ path      : ", in_tenx))
 stm(paste0("IN  SampleSheet         : ", in_key))
 stm(paste0("IN  Well ID             : ", in_well))
 stm(paste0("OUT H5 directory        : ", out_dir))
@@ -106,10 +93,7 @@ stm(paste0("OUT H5 directory        : ", out_dir))
 #### Input Parameters
 ```{r Print Arguments}
 print(c(
-  paste0("IN  H5 file             : ", in_h5),
-  paste0("IN  Mol Info H5         : ", in_mol),
-  paste0("IN  Metrics Summary     : ", in_sum),
-  paste0("IN  Per Barcode Metrics : ", in_pbm),
+  paste0("IN  10x outs/ path      : ", in_tenx),
   paste0("IN  SampleSheet         : ", in_key),
   paste0("IN  Well ID             : ", in_well),
   paste0("OUT H5 directory        : ", out_dir)
@@ -118,22 +102,64 @@ print(c(
 
 #### Check Input Files
 ```{r Check Inputs}
-if(!file.exists(in_h5)) {
-  stm(paste0("ERROR: Cannot find IN H5 file:", in_h5))
-  stop()
+if(is.null(in_tenx)) {
+  # If in_tenx is NULL, use test dataset
+  in_h5 <- system.file("testdata/well1.h5", package = "H5weaver")
+  in_mol <- system.file("testdata/well1_molecule_info.h5", package = "H5weaver")
+  in_sum <- system.file("testdata/well1_metrics_summary.csv", package = "H5weaver")
+  in_pbm <- system.file("testdata/well1_per_barcode_metrics_summary.csv", package = "H5weaver")
+  run_type <- "arc"
+} else {
+  if(!dir.exists(in_tenx)) {
+    stm(paste0("ERROR: Cannot find IN 10x directory:", in_tenx))
+    stop()
+  }
+  
+  in_h5 <- file.path(in_tenx, "filtered_feature_bc_matrix.h5")
+  
+  # Molecule info file
+  arc_mol <- file.path(in_tenx, "gex_molecule_info.h5")
+  rna_mol <- file.path(in_tenx, "molecule_info.h5")
+  
+  if(file.exists(arc_mol)) {
+    stm(paste("Found gex_molecule_info.h5 file:",arc_mol))
+    in_mol <- arc_mol
+  } else if(file.exists(rna_mol)) {
+    stm(paste("Found molecule_info.h5 file:",arc_mol))
+    in_mol <- rna_mol
+  } else {
+    stm(paste("ERROR: Could not find molecule_info.h5 file in",in_tenx))
+    stop()
+  }
+  
+  # Summary file
+  arc_sum <- file.path(in_tenx, "rna_summary.csv")
+  rna_sum <- file.path(in_tenx, "summary.csv")
+  
+  if(file.exists(arc_sum)) {
+    stm(paste("Found rna_summary.csv file:",arc_sum))
+    in_sum <- arc_sum
+  } else if(file.exists(rna_sum)) {
+    stm(paste("Found summary.csv file:",rna_sum))
+    in_sum <- rna_sum
+  } else {
+    stm(paste("No summary.csv file located in", in_tenx))
+    stop()
+  }
+  
+  # per-barcode metrics file
+  in_sin <- file.path(in_tenx, "arc_singlecell.csv")
+  
+  if(file.exists(in_sin)) {
+    stm(paste("Found arc_singlecell.csv file:",in_sin))
+    stm("Proceeding as 10x Arc run.")
+    run_type <- "arc"
+  } else {
+    stm("No per_barcode_metrics.csv file located. Proceeding as RNA-only run.")
+    run_type <- "rna"
+  }
 }
-if(!file.exists(in_mol)) {
-  stm(paste0("ERROR: Cannot find IN Mol Info H5 file:", in_mol))
-  stop()
-}
-if(!file.exists(in_sum)) {
-  stm(paste0("ERROR: Cannot find IN Metrics Summary file:", in_sum))
-  stop()
-}
-if(!file.exists(in_pbm)) {
-  stm(paste0("ERROR: Cannot find IN Per Barcode Metrics file:", in_pbm))
-  stop()
-}
+
 if(!file.exists(in_key)) {
   stm(paste0("ERROR: Cannot find IN SampleSheet file:", in_key))
   stop()
@@ -187,7 +213,6 @@ if("HashTag" %in% names(ss)) {
   out_h5 <- file.path(out_dir, paste0(pool_id, "_", pbmc_sample_id, ".h5"))
   out_json <- file.path(out_dir, paste0(in_well,"_well_metrics.json"))
 }
-
 
 stm(paste0("OUT H5 file         : ", out_h5))
 stm(paste0("OUT JSON file       : ", out_json))
@@ -243,29 +268,31 @@ h5_list <-add_cell_ids(h5_list,
 
 Shift to use arc joint barcodes
 ```{r}
-pbm <- fread(in_pbm)
-
-if(! "cell_uuid" %in% names(pbm)) {
-  stop("A cell_uuid column is required for arc processing. See 00_arc_uuid.sh in tenx-atacseq-pipeline.")
+if(run_type == "arc") {
+  
+  sc <- fread(in_sin)
+  
+  if(sc$cell_id[1] == "None") {
+    stop("Missing barcode formatting. See 00_arc_format.sh in tenx-atacseq-pipeline.")
+  }
+  
+  # filter and sort barcode_metrics to match h5_list
+  sc <- sc[match(h5_list$matrix$observations$original_barcode, sub("-1$","",sc$barcode)),]
+  
+  # Replace barcodes with joint UUIDs
+  h5_list <- set_list_path(h5_list,
+                           "/matrix/barcodes",
+                           unlist(sc$cell_id))
+  
+  # Shift cell_uuid in h5_list to rna_cell_uuid
+  h5_list <- set_list_path(h5_list,
+                           "/matrix/observations/rna_cell_uuid",
+                           get_list_path(h5_list,
+                                         "/matrix/observations/cell_uuid"))
+  
+  # Drop cell_uuid to avoid confusion.
+  h5_list$matrix$observations$cell_uuid <- NULL
 }
-
-# filter and sort per_barcode_metrics to match h5_list
-pbm$barcode <- sub("-1","",pbm$barcode)
-pbm <- pbm[match(h5_list$matrix$observations$original_barcode, pbm$barcode),]
-
-# Replace barcodes with joint UUIDs
-h5_list <- set_list_path(h5_list,
-                         "/matrix/barcodes",
-                         unlist(pbm$cell_uuid))
-
-# Shift cell_uuid in h5_list to rna_cell_uuid
-h5_list <- set_list_path(h5_list,
-                         "/matrix/observations/rna_cell_uuid",
-                         get_list_path(h5_list,
-                                       "/matrix/observations/cell_uuid"))
-
-# Drop cell_uuid to avoid confusion.
-h5_list$matrix$observations$cell_uuid <- NULL
 ```
 
 #### Split matrices if more than one feature type is present
@@ -299,16 +326,16 @@ if(sum(feature_types != "Gene Expression") > 0) {
     h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "ADT")
   }
   
-  if("Peaks" %in% feature_types) {
-    h5_list$peaks_dgCMatrix <- mat[feature_df$feature_type == "Peaks",]
-    h5_list$peaks <- list(features = as.list(feature_df[feature_df$feature_type == "Peaks",]))
-    h5_list$peaks$observations <- list(
-      n_umis = unname(colSums(h5_list$peaks_dgCMatrix)),
-      n_peaks = unname(colSums(h5_list$peaks_dgCMatrix > 0))
-    )
-    
-    h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "peaks")
-  }
+  # if("Peaks" %in% feature_types) {
+  #   h5_list$peaks_dgCMatrix <- mat[feature_df$feature_type == "Peaks",]
+  #   h5_list$peaks <- list(features = as.list(feature_df[feature_df$feature_type == "Peaks",]))
+  #   h5_list$peaks$observations <- list(
+  #     n_umis = unname(colSums(h5_list$peaks_dgCMatrix)),
+  #     n_peaks = unname(colSums(h5_list$peaks_dgCMatrix > 0))
+  #   )
+  #   
+  #   h5_list <- h5_list_convert_from_dgCMatrix(h5_list, target = "peaks")
+  # }
   
 }
 ```

@@ -7,7 +7,7 @@
 read_h5_dgCMatrix(
   h5_file,
   target = "matrix",
-  feature_names = "id",
+  feature_names = "name",
   sample_names = "barcodes",
   index1 = TRUE
 )
@@ -17,7 +17,7 @@ read_h5_dgCMatrix(
 
 \item{target}{a character object specifying the target matrix within the file. Default is "matrix".}
 
-\item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "id".}
+\item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "name".}
 
 \item{sample_names}{a character object specifying which values to use for col.names. If "barcodes", will use /target/barcodes. Other values will be read from /target/observations/}
 

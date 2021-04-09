@@ -4,14 +4,14 @@
 \alias{read_h5_seurat}
 \title{Read .h5 directly into a Seurat Object}
 \usage{
-read_h5_seurat(h5_file, target = "matrix", feature_names = "id", ...)
+read_h5_seurat(h5_file, target = "matrix", feature_names = "name", ...)
 }
 \arguments{
 \item{h5_file}{the path to an .h5 file in 10x Genomics format}
 
 \item{target}{A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".}
 
-\item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "id".}
+\item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "name".}
 
 \item{...}{Additional parameters passed to \code{\link{Seurat::createSeuratObject}}}
 }

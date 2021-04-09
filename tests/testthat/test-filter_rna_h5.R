@@ -164,8 +164,7 @@ test_that(
 
     subset_result <- subset_h5_list_by_observations(test_h5l,
                                                     match_values = subset_barcodes,
-                                                    match_target = "barcodes",
-                                                    sparse_matrices = "matrix")
+                                                    match_target = "barcodes")
 
     expect_equal(length(subset_result$matrix$barcodes), length(subset_barcodes))
     expect_equal(length(subset_result$matrix$indptr), length(subset_barcodes) + 1)
@@ -180,8 +179,7 @@ test_that(
 
     subset_result2 <- subset_h5_list_by_observations(test_h5l_names,
                                                     match_values = subset_names,
-                                                    match_target = "cell_name",
-                                                    sparse_matrices = "matrix")
+                                                    match_target = "cell_name")
 
     expect_equal(length(subset_result2$matrix$barcodes), length(subset_names))
     expect_equal(length(subset_result2$matrix$indptr), length(subset_names) + 1)

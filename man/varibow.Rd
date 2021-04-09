@@ -4,10 +4,12 @@
 \alias{varibow}
 \title{Generate a rainbow palette with variation in saturation and value}
 \usage{
-varibow(n_colors)
+varibow(n_colors, alpha = 1)
 }
 \arguments{
 \item{n_colors}{The number of colors to generate}
+
+\item{alpha}{The alpha for the palette. if NULL, alpha hex values are trimmed. Default = 1.}
 }
 \value{
 a character vector of hex color values of length n_colors.
