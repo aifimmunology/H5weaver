@@ -89,7 +89,7 @@ if(is.null(params$in_h5)) {
 in_well <- sub("-.P","-P",in_well)
 
 # Check Well ID format
-if(!grepl("^[A-Z]+[0-9]+-.?P[0-9]C[0-9]W[0-9]$", in_well)) {
+if(!grepl("^[A-Z|-]+[0-9]+-.?P[0-9]C[0-9]W[0-9]$", in_well)) {
   stm(paste0("ERROR: Input Well ID is not in expected format, e.g. EXP###-AP#C#W# or B###-AP#C#W# :", in_h5))
   stop()
 }
