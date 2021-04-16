@@ -61,6 +61,7 @@ quiet_library(jsonlite)
 Declaring start
 ```{r Declare start}
 stm("Starting .h5 metadata analysis")
+stm(paste0("Using H5weaver v", installed.packages()["H5weaver","Version"]))
 ```
 
 #### Argument parsing
@@ -79,7 +80,7 @@ if(is.null(params$in_tenx)) {
 in_well <- sub("-.P","-P",in_well)
 
 # Check Well ID format
-if(!grepl("^[A-Z]+[0-9]+-.?P[0-9]C[0-9]W[0-9]$", in_well)) {
+if(!grepl("^[A-Z|-]+[0-9]+-.?P[0-9]C[0-9]W[0-9]$", in_well)) {
   stm(paste0("ERROR: Input Well ID is not in expected format, e.g. EXP###-AP#C#W# or B###-AP#C#W# :", in_h5))
   stop()
 }
@@ -134,13 +135,13 @@ if(is.null(in_tenx)) {
   
   # Summary file
   arc_sum <- file.path(in_tenx, "rna_summary.csv")
-  rna_sum <- file.path(in_tenx, "summary.csv")
+  rna_sum <- file.path(in_tenx, "metrics_summary.csv")
   
   if(file.exists(arc_sum)) {
     stm(paste("Found rna_summary.csv file:",arc_sum))
     in_sum <- arc_sum
   } else if(file.exists(rna_sum)) {
-    stm(paste("Found summary.csv file:",rna_sum))
+    stm(paste("Found metrics_summary.csv file:",rna_sum))
     in_sum <- rna_sum
   } else {
     stm(paste("No summary.csv file located in", in_tenx))
@@ -308,13 +309,12 @@ if(sum(feature_types != "Gene Expression") > 0) {
   mat <- h5_list$matrix_dgCMatrix
   
   feature_list <- h5_list$matrix$features
-  atk <- feature_list[["_all_tag_keys"]]
   feature_list[names(feature_list) == "_all_tag_keys"] <- NULL
-  feature_df <- as.data.frame(feature_list)
+  feature_df <- as.data.frame(feature_list, stringsAsFactors = FALSE)
   
   h5_list$matrix_dgCMatrix <- mat[feature_df$feature_type == "Gene Expression",]
   h5_list$matrix$features <- as.list(feature_df[feature_df$feature_type == "Gene Expression",])
-  h5_list$matrix$features[["_all_tag_keys"]] <- atk
+  h5_list$matrix$features[["_all_tag_keys"]] <- "genome"
   
   if("Antibody Capture" %in% feature_types) {
     h5_list$ADT_dgCMatrix <- mat[feature_df$feature_type == "Antibody Capture",]

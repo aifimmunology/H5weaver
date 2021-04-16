@@ -63,6 +63,7 @@ quiet_library(cowplot)
 Declaring start
 ```{r Declare start}
 stm("Starting .h5 split")
+stm(paste0("Using H5weaver v", installed.packages()["H5weaver","Version"]))
 ```
 
 #### Argument parsing
