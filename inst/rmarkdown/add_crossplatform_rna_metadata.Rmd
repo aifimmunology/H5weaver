@@ -61,6 +61,7 @@ quiet_library(jsonlite)
 Declaring start
 ```{r Declare start}
 stm("Starting .h5 metadata analysis")
+stm(paste0("Using H5weaver v", installed.packages()["H5weaver","Version"]))
 ```
 
 #### Argument parsing
@@ -308,13 +309,12 @@ if(sum(feature_types != "Gene Expression") > 0) {
   mat <- h5_list$matrix_dgCMatrix
   
   feature_list <- h5_list$matrix$features
-  atk <- feature_list[["_all_tag_keys"]]
   feature_list[names(feature_list) == "_all_tag_keys"] <- NULL
-  feature_df <- as.data.frame(feature_list)
+  feature_df <- as.data.frame(feature_list, stringsAsFactors = FALSE)
   
   h5_list$matrix_dgCMatrix <- mat[feature_df$feature_type == "Gene Expression",]
   h5_list$matrix$features <- as.list(feature_df[feature_df$feature_type == "Gene Expression",])
-  h5_list$matrix$features[["_all_tag_keys"]] <- atk
+  h5_list$matrix$features[["_all_tag_keys"]] <- "genome"
   
   if("Antibody Capture" %in% feature_types) {
     h5_list$ADT_dgCMatrix <- mat[feature_df$feature_type == "Antibody Capture",]

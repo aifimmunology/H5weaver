@@ -61,6 +61,7 @@ quiet_library(cowplot)
 Declaring start
 ```{r Declare start}
 stm("Merging .h5 files")
+stm(paste0("Using H5weaver v", installed.packages()["H5weaver","Version"]))
 ```
 
 #### Argument parsing

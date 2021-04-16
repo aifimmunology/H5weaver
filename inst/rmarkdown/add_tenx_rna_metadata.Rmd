@@ -63,6 +63,7 @@ quiet_library(jsonlite)
 Declaring start
 ```{r Declare start}
 stm("Starting .h5 metadata analysis")
+stm(paste0("Using H5weaver v", installed.packages()["H5weaver","Version"]))
 ```
 
 #### Argument parsing
