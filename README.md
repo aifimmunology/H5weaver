@@ -31,6 +31,17 @@ BiocManager::install("rhdf5")
 This package can be installed from Github using the `devtools` package.
 
 You may first need to register your GitHub PAT, as this is a private repository.
+
+Get access token from github:
+- Navigate to  [Settings / Developer settings](https://github.com/settings/apps)
+- Click [Personal access tokens](https://github.com/settings/tokens)
+- Generate new token (or re-generate if you have an existing one but you didn't copy it to your password manager 😒).
+- Under **Select scopes**
+- Give the token **repo** scope
+
+from github:
+> Make sure to copy your new personal access token now. You won’t be able to see it again!
+
 ```
 Sys.setenv(GITHUB_PAT = "your-access-token-here")
 devtools::install_github("aifimmunology/H5weaver")
