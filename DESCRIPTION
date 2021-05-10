@@ -1,7 +1,7 @@
 Package: H5weaver
 Type: Package
 Title: Read, Rearrange, and Write HDF5 files
-Version: 1.1.1
+Version: 1.1.2
 Author: Lucas Graybuck <lucasg@alleninstitute.org>
 Maintainer: Lucas Graybuck <lucasg@alleninstitute.org>
 Description: This package provides functions for reading, writing, combining, and rearranging HDF5 files with conventions from 10x Genomics.
