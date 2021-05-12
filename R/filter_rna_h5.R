@@ -426,7 +426,7 @@ add_h5_list_adt_results <- function(h5_list,
   assertthat::assert_that(class(h5_list) == "list")
   assertthat::assert_that(sum(class(adt_matrix) %in% c("dgCMatrix","matrix")) > 0)
 
-  if(!is.null(hash_count_matrix)) {
+  if(!is.null(adt_matrix)) {
     assertthat::assert_that(sum(class(adt_metadata) %in% c("data.frame","data.table")) > 0)
   }
 
