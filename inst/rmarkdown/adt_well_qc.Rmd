@@ -1,0 +1,272 @@
+---
+title: "ADT QC Report"
+author: "Zach Thomson"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    code_folding: hide
+    df_print: paged
+    self_contained: true
+params: 
+  in_counts: NULL
+  in_bcs: NULL
+  well_id: NULL
+  out_dir: NULL
+---
+
+<a id="contents"></a>
+
+## Contents
+
+#### [Data Processing](#data_processing)
+- [Session Preparation](#session_preparation)
+- [Load Inputs](#load_inputs)
+- [Create Seurat Object](#seurat_object)
+- [Create ADT Dataframe](#adt_data_frame)
+
+#### [QC Plots](#plots)
+- [ADT Cells vs Background](#split_violin)
+- [ADT UMIs/Cell Stats](#adt_stats)
+- [Total Counts by ADT](#total_counts)
+- [ADT UMAP](#adt_umap)
+
+#### [Session Info](#session_info)
+
+<a id="data_processing"></a>
+
+## Data Processing
+
+<a id="session_preparation"></a>
+
+### Session Preparation
+
+#### Load Libraries
+```{r load libraries}
+start_time <- Sys.time()
+
+quiet_library <- function(...) {
+  suppressPackageStartupMessages(library(...))
+}
+quiet_library(ggplot2)
+quiet_library(Seurat)
+quiet_library(viridis)
+quiet_library(dplyr)
+quiet_library(plyr)
+quiet_library(jsonlite)
+quiet_library(H5weaver)
+```
+
+Declaring start
+```{r Declare Start}
+stm("Starting ADT Report QC")
+```
+
+[Return to Contents](#contents)
+
+####Check Input Files
+```{r check inputs}
+if(!file.exists(params$in_counts)){
+  stm(paste0("ERROR: Cannot find IN COUNTS:", in_counts))
+  stop()
+}
+if(!file.exists(params$in_bcs)){
+  stm(paste0("ERROR: Cannot find IN BARCODES", in_bcs))
+  stop()
+}
+```
+
+<a id="load_inputs"></a>
+
+### Load Inputs
+
+#### Load Input Files
+```{r locate input files}
+stm(paste0("Reading input files"))
+
+adt_count_mtx <- read.csv(params$in_counts)
+cell_barcodes <- read.table(params$in_bcs, sep = '\t')
+cell_barcodes <- gsub('.{2}$', '', cell_barcodes$V1)
+well_id <- params$well_id
+out_dir <- params$out_dir
+```
+
+#### Create out directory if missing
+```{r Create Out Dir}
+if(!dir.exists(out_dir)) {
+  stm(paste0("Creating Output Directory: ",out_dir))
+  dir.create(out_dir, 
+             recursive = TRUE)
+}
+```
+
+<a id="seurat_object"></a>
+
+#### Create Seurat Object
+```{r Create Seurat Object}
+stm(paste0("Creating Seurat Object"))
+
+diff_bcs <- setdiff(adt_count_mtx$cell_barcode, cell_barcodes)
+neg <- subset(adt_count_mtx, subset = adt_count_mtx$cell_barcode %in% diff_bcs)
+neg_50k <- neg[order(neg$total, decreasing = T),]
+neg_50k <- neg_50k[1:50000,]
+rownames(neg_50k) <- neg_50k$cell_barcode
+
+pos_subset <- subset(adt_count_mtx, subset = adt_count_mtx$cell_barcode %in% cell_barcodes)
+rownames(pos_subset) <- pos_subset$cell_barcode
+
+pos_so <- CreateSeuratObject(counts = t(pos_subset[3:length(colnames(pos_subset))]), project = 'Cells')
+neg_so <- CreateSeuratObject(counts = t(neg_50k[3:length(colnames(neg_50k))]), project = 'Top 50k Empty Droplets')
+so_merge <- merge(pos_so, neg_so)
+so_merge[['well']] <- rep(well_id, length(so_merge@assays$RNA))
+
+```
+
+#### UMAP clustering for ADTs
+```{r UMAP Clustering for ADTs}
+stm(paste0("Clustering ADTs"))
+so_merge <- SetIdent(so_merge, value = 'orig.ident')
+adt_positives <- subset(so_merge, idents = 'Cells')
+VariableFeatures(adt_positives) <- rownames(adt_positives)
+
+if (length(rownames(adt_positives)) > 30) {
+  dims = 30
+} else {
+  dims = length(rownames(adt_positives)) - 1
+}
+
+adt_positives <- NormalizeData(adt_positives, normalization.method = 'CLR', margin = 2) %>% 
+  ScaleData() %>% RunPCA(npcs = dims)
+adt_positives <- RunUMAP(adt_positives, dims = 1:(dims)) %>% FindNeighbors() %>% FindClusters()
+```
+
+<a id="adt_data_frame"></a>
+
+#### ADT UMIs Dataframe construction
+```{r ADT UMIs dataframe construction}
+stm(paste0("Summing ADTs"))
+adt_subset <- adt_count_mtx[,3:length(colnames(adt_count_mtx))]
+adt_sums <- data.frame(colSums(adt_subset))
+adt_sums$adt <- rownames(adt_sums)
+colnames(adt_sums) <- c('Count', 'ADT')
+
+pos_adts <- pos_subset[,3:length(colnames(pos_subset))]
+pos_adt_sums <- data.frame(colSums(pos_adts))
+pos_adt_sums$adt <- rownames(pos_adt_sums)
+pos_adt_sums$Cell <- rep('True', length(pos_adt_sums$adt))
+colnames(pos_adt_sums) <- c('Count','ADT','Cell')
+
+neg_equal <- neg[order(neg$total, decreasing = T),]
+neg_equal <- neg_equal[1:length(rownames(pos_subset)),]
+rownames(neg_equal) <- neg_equal$cell_barcode
+
+neg_adts <- neg_equal[,3:length(colnames(neg_equal))]
+neg_adt_sums <- data.frame(colSums(neg_adts))
+neg_adt_sums$adt <- rownames(neg_adt_sums)
+neg_adt_sums$Cell <- rep('Background', length(neg_adt_sums$adt))
+colnames(neg_adt_sums) <- c('Count','ADT','Cell')
+
+combined_adts <- rbind(pos_adt_sums, neg_adt_sums)
+                           
+```
+
+[Return to Contents](#contents)
+
+<a id="plots"></a>
+### QC Plots
+
+<a id="split_violin"></a>
+#### Split Violin Plot
+```{r split violin plot, fig.width=10, fig.height=8}
+VlnPlot(so_merge, features = 'nCount_RNA', log = T, 
+        pt.size = 0, split.plot = T, split.by = 'orig.ident', group.by = 'well') & geom_hline(yintercept=1000, linetype="dashed", color = "blue") &
+  geom_hline(yintercept=300, linetype="solid", color = "red") & stat_summary(fun=median, geom="point", size=2, color="green") & ggtitle('ADT UMIs/Cell') &
+  theme(axis.title.x=element_blank())
+```
+
+<a id="adt_stats"></a>
+
+#### ADT UMIs/Cell Stats
+```{r ADT UMIs/Cell Stats}
+overall_stats<- data.frame("Total")
+overall_stats$pos_adt <- median(pos_subset$total)
+overall_stats$neg_adt <- median(neg_50k$total)
+overall_stats$signal_ratio <- (overall_stats$pos_adt / overall_stats$neg_adt)
+colnames(overall_stats) <-  c('Marker','Median Cells','Median Background','Signal Ratio')
+overall_stats$`Signal Ratio` <- round(overall_stats$`Signal Ratio`, 2)
+
+adt_stats <- data.frame(colnames(pos_adts))
+adt_stats$pos_adts <- apply(pos_adts, 2, median)
+adt_stats$neg_adts <- apply(neg_adts, 2, median)
+adt_stats$signal_ratio <- (adt_stats$pos_adts / adt_stats$neg_adts)
+colnames(adt_stats) <- c('Marker','Median Cells','Median Background','Signal Ratio')
+adt_stats$`Signal Ratio` <- round(adt_stats$`Signal Ratio`, 2)
+
+final_table <- rbind(overall_stats, adt_stats)
+
+qc_table(final_table)
+```
+
+<a id="total_counts"></a>
+
+#### ADT UMIs plot - Linear Scale
+```{r ADT UMIs plot, fig.width=10, fig.height=6}
+ggplot(combined_adts, aes(x = reorder(ADT, -Count), y = Count, color = Cell)) + geom_point(size = 5) + 
+  geom_hline(yintercept=median(adt_sums$Count), linetype="dashed", color = "blue") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))# + scale_y_log10()
+```
+
+#### ADT UMIs plot - Log Scale
+```{r ADT UMIs plot log, fig.width=10, fig.height=6}
+ggplot(combined_adts, aes(x = reorder(ADT, -Count), y = Count, color = Cell)) + geom_point(size = 5) + 
+  geom_hline(yintercept=median(adt_sums$Count), linetype="dashed", color = "blue") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + scale_y_log10()
+```
+
+
+<a id="adt_umap"></a>
+
+```{r dynamically scale adt umap height}
+n_features <- length(rownames(adt_positives))
+height = ceiling((n_features / 3) * 2)
+```
+
+#### UMAP clustering for ADTs individually
+```{r UMAP clustering for ADTs individually, fig.width=10, fig.height=height, message=F, echo=F}
+FeaturePlot(adt_positives, features = rownames(adt_positives), min.cutoff = 'q03', max.cutoff = 'q97', label.size = 1, ncol = 3) & scale_color_viridis(option = 'inferno')
+```
+
+[Return to Contents](#contents)
+
+#### Export Positive Droplet ADT Matrix & Metadata
+```{r export adt matrix}
+write.csv(pos_adts, file = file.path(out_dir,paste0(well_id,
+                                                    "_adt_positive_tag_counts.csv")))
+meta_data <- pos_subset[,1:2]
+meta_data$flag <- ifelse(meta_data$total > 300, "Good", "Low")
+rownames(meta_data) <- meta_data$cell_barcode
+
+write.csv(meta_data, file = file.path(out_dir, paste0(well_id,
+                                                      "_adt_metadata.csv")))
+```
+
+<a id="session_info"></a>
+
+## Session Information
+
+```{r Session Info}
+sessionInfo()
+```
+
+Total time elapsed
+```{r Show Time}
+end_time <- Sys.time()
+diff_time <- end_time - start_time
+time_message <- paste0("Elapsed Time: ", 
+                       round(diff_time, 3),
+                       " ", units(diff_time))
+print(time_message)
+stm(time_message)
+stm("ADT QC Report complete.")
+```
+
+[Return to Contents](#contents)

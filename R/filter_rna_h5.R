@@ -275,7 +275,6 @@ subset_h5_list_by_observations <- function(h5_list,
   unconverted_matrices <- setdiff(sparse_matrices[sparse_matrices %in% names(h5_list)], converted_matrices)
   assertthat::assert_that((length(unconverted_matrices) + length(converted_matrices)) > 0)
 
-
   if(match_target == "barcodes") {
     if("matrix" %in% unconverted_matrices) {
       assertthat::assert_that("barcodes" %in% names(h5_list$matrix))
