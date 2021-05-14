@@ -1,0 +1,188 @@
+---
+title: "ADT_Injection"
+author: "Zach Thomson"
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output: 
+  html_document:
+    code_folding: hide
+    df_print: paged
+    self_contained: true
+params: 
+  in_h5: NULL
+  in_adt_counts: NULL
+  in_adt_meta: NULL
+  well_id: NULL
+  out_dir: NULL
+---
+
+## ADT Injection
+
+<a id="contents"></a>
+
+### Contents
+
+#### [Data Processing](#data_processing)
+- [Session Preparation](#session_preparation)
+- [Load Inputs](#load_inputs)
+- [Data Output](#data_output)
+- [QC](#qc)
+
+#### [Session Info](#session_info)
+
+<a id="data_processing"></a>
+
+## Data Processing
+
+<a id="session_preparation"></a>
+
+### Session Preparation
+
+#### Load Libraries
+```{r load libraries}
+start_time <- Sys.time()
+
+quiet_library <- function(...) {
+  suppressPackageStartupMessages(library(...))
+}
+
+quiet_library(H5weaver)
+quiet_library(ggplot2)
+```
+
+#### Load Inputs
+```{r check inputs}
+if(!file.exists(params$in_h5)){
+  stm(paste0("ERROR: Cannot find IN H5:", in_h5))
+  stop()
+}
+if(!file.exists(params$in_adt_counts)){
+  stm(paste0("ERROR: Cannot find IN ADT COUNTS:", in_adt_counts))
+  stop()
+}
+if(!file.exists(params$in_adt_meta)){
+  stm(paste0("ERROR: Cannot find IN ADT METADATA", in_adt_meta))
+  stop()
+}
+```
+
+#### Input parameters
+```{r inputs}
+in_h5 <- params$in_h5
+in_adt_counts <- params$in_adt_counts
+in_adt_meta <- params$in_adt_meta
+in_well <- params$well_id
+out_dir <- params$out_dir
+```
+
+
+#### Read in single well .h5 file
+```{r read in h5}
+stm(paste0("Loading HDF5 from ", in_h5))
+h5_list <- h5dump(in_h5)
+```
+
+
+#### Read in ADT metadata and counts
+```{r ADT meta and counts}
+stm(paste0("Loading ADT Counts from ", in_adt_counts))
+
+adt_counts <- read.csv(in_adt_counts, row.names = 1)
+
+adt_meta <- read.csv(in_adt_meta, row.names = 1)
+```
+
+#### Create out directory if missing
+```{r Create Out Dir}
+if(!dir.exists(out_dir)) {
+  stm(paste0("Creating Output Directory: ",out_dir))
+  dir.create(out_dir, 
+             recursive = TRUE)
+}
+```
+
+#### Barcode matching & subsetting - still getting error
+```{r barcode matching}
+# retrieve barcodes
+h5_barcodes <- h5_list$matrix$observations$original_barcodes
+adt_barcodes <- rownames(adt_counts)
+# match barcodes
+common_barcodes <- intersect(h5_barcodes, adt_barcodes)
+# filter adt matrix based on common barcodes
+common_adt_matrix <- adt_counts[common_barcodes,]
+# filter h5_list based on common barcodes
+h5_list <- H5weaver::subset_h5_list_by_observations(h5_list,
+                                                    match_values = common_barcodes,
+                                                    match_target = 'original_barcodes')
+```
+
+#### Add ADT info to the .h5
+```{r add ADT info to h5}
+# Convert matrix to dgCMatrix
+common_adt_matrix <- t(common_adt_matrix)
+common_adt_matrix <- as(common_adt_matrix, "dgCMatrix")
+# Add to the h5_list
+h5_list$ADT_dgCMatrix <- common_adt_matrix
+h5_list <- h5_list_convert_from_dgCMatrix(h5_list, "ADT")
+# Filter metadata by common barcodes
+common_adt_meta <- adt_meta[common_barcodes,]
+# Add ADT metadata to h5 
+adt_meta_cols <- names(common_adt_meta)[-1]
+
+h5_list <- H5weaver::set_list_path(h5_list,
+                                   paste0("/matrix/observations/","adt_umis"),
+                                   common_adt_meta[['total']])
+h5_list <- H5weaver::set_list_path(h5_list,
+                                   paste0("/matrix/observations/","adt_qc_flag"),
+                                   as.character(common_adt_meta[['flag']]))
+```
+
+<a id="data_output"></a>
+
+#### Write new .h5 file w/ ADTs integrated
+```{r write new h5 file}
+out_file <- sub(".h5$","_adt.h5",basename(in_h5))
+
+out_h5 <- file.path(out_dir, out_file)
+
+write_h5_list(h5_list,
+              h5_file = out_h5,
+              overwrite = TRUE)
+h5closeAll()
+```
+
+<a id="qc"></a>
+
+#### QC
+```{r QC metrics}
+length_common_bcs <- length(common_barcodes)
+length_adt_bcs <- length(rownames(adt_counts))
+length_rna_bcs <- length(h5_list$matrix$observations$original_barcodes)
+
+df <- data.frame(percent_overlap = c((length_common_bcs / length_adt_bcs * 100), (length_common_bcs / length_rna_bcs * 100)),
+                 Modality = c('ADT Overlap', 'RNA Overlap'))
+ggplot(df, aes(x = Modality, y = percent_overlap, fill = Modality)) + geom_bar(stat = 'identity') + 
+  geom_text(aes(label = paste0(percent_overlap, "%")), position = position_dodge(0.9), vjust = 1.6) + 
+  labs(title = "Barcode Overlap") + theme(plot.title = element_text(hjust = 0.5))
+```
+
+<a id="session_info"></a>
+
+## Session Information
+
+```{r Session Info}
+sessionInfo()
+```
+
+Total time elapsed
+```{r Show Time}
+end_time <- Sys.time()
+diff_time <- end_time - start_time
+time_message <- paste0("Elapsed Time: ", 
+                       round(diff_time, 3),
+                       " ", units(diff_time))
+print(time_message)
+stm(time_message)
+stm("ADT Injection complete.")
+```
+
+[Return to Contents](#contents)

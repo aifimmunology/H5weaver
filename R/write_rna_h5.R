@@ -233,6 +233,20 @@ write_h5_list <- function(h5_list,
         rhdf5::h5write(obj = h5_list[[h5_name]],
                        file = h5_handle,
                        name = new_object)
+      } else if(class(h5_list[[h5_name]]) == "factor") {
+        h5_list[[h5_name]] <- as.character(h5_list[[h5_name]])
+        h5_list[[h5_name]][is.na(h5_list[[h5_name]])] <- "NA"
+
+        rhdf5::h5createDataset(h5_handle,
+                               dataset = new_object,
+                               dims = list(length(h5_list[[h5_name]])),
+                               chunk = H5weaver::choose_chunk_size(h5_list[[h5_name]]),
+                               storage.mode = storage.mode(h5_list[[h5_name]]),
+                               size = max(nchar(h5_list[[h5_name]])) + 1)
+
+        rhdf5::h5write(obj = h5_list[[h5_name]],
+                       file = h5_handle,
+                       name = new_object)
       }
     }
   }
