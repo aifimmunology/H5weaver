@@ -61,11 +61,6 @@ in_counts <- params$in_count
 in_bcs <- params$in_bcs
 well_id <- params$well_id
 out_dir <- params$out_dir
-
-in_counts <- "~/../Downloads/option1.csv"
-in_bcs <- "~/../Downloads/barcodes.tsv.gz"
-well_id <- "X000-P1C1W1"
-out_dir <- tempdir()
 ```
 
 
