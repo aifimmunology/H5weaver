@@ -56,6 +56,19 @@ quiet_library(jsonlite)
 quiet_library(H5weaver)
 ```
 
+```{r}
+in_counts <- params$in_count
+in_bcs <- params$in_bcs
+well_id <- params$well_id
+out_dir <- params$out_dir
+
+in_counts <- "~/../Downloads/option1.csv"
+in_bcs <- "~/../Downloads/barcodes.tsv.gz"
+well_id <- "X000-P1C1W1"
+out_dir <- tempdir()
+```
+
+
 Declaring start
 ```{r Declare Start}
 stm("Starting ADT Report QC")
@@ -63,14 +76,28 @@ stm("Starting ADT Report QC")
 
 [Return to Contents](#contents)
 
+```{r}
+stm(paste("PARAM in_counts :", in_counts))
+stm(paste("PARAM in_bcs    :", in_bcs))
+stm(paste("PARAM well_id   :", well_id))
+stm(paste("PARAM out_dir   :", out_dir))
+```
+
+```{r}
+print(paste("PARAM in_counts :", in_counts))
+print(paste("PARAM in_bcs    :", in_bcs))
+print(paste("PARAM well_id   :", well_id))
+print(paste("PARAM out_dir   :", out_dir))
+```
+
 ####Check Input Files
 ```{r check inputs}
-if(!file.exists(params$in_counts)){
-  stm(paste0("ERROR: Cannot find IN COUNTS:", in_counts))
+if(!file.exists(in_counts)){
+  stm(paste("ERROR: Cannot find in_counts :", in_counts))
   stop()
 }
-if(!file.exists(params$in_bcs)){
-  stm(paste0("ERROR: Cannot find IN BARCODES", in_bcs))
+if(!file.exists(in_bcs)){
+  stm(paste("ERROR: Cannot find in_bcs :", in_bcs))
   stop()
 }
 ```
@@ -83,11 +110,10 @@ if(!file.exists(params$in_bcs)){
 ```{r locate input files}
 stm(paste0("Reading input files"))
 
-adt_count_mtx <- read.csv(params$in_counts)
-cell_barcodes <- read.table(params$in_bcs, sep = '\t')
+adt_count_mtx <- read.csv(in_counts)
+cell_barcodes <- read.table(in_bcs, sep = '\t')
 cell_barcodes <- gsub('.{2}$', '', cell_barcodes$V1)
-well_id <- params$well_id
-out_dir <- params$out_dir
+
 ```
 
 #### Create out directory if missing
@@ -103,22 +129,34 @@ if(!dir.exists(out_dir)) {
 
 #### Create Seurat Object
 ```{r Create Seurat Object}
-stm(paste0("Creating Seurat Object"))
+stm("Creating Seurat Object")
 
 diff_bcs <- setdiff(adt_count_mtx$cell_barcode, cell_barcodes)
 neg <- subset(adt_count_mtx, subset = adt_count_mtx$cell_barcode %in% diff_bcs)
-neg_50k <- neg[order(neg$total, decreasing = T),]
-neg_50k <- neg_50k[1:50000,]
-rownames(neg_50k) <- neg_50k$cell_barcode
+
+if(nrow(neg) < 5e4) {
+  stm("WARNING: Not enough non-cell barcodes available. Skipping background estimates.")
+  background_available <- FALSE
+} else {
+  background_available <- TRUE
+}
 
 pos_subset <- subset(adt_count_mtx, subset = adt_count_mtx$cell_barcode %in% cell_barcodes)
 rownames(pos_subset) <- pos_subset$cell_barcode
-
 pos_so <- CreateSeuratObject(counts = t(pos_subset[3:length(colnames(pos_subset))]), project = 'Cells')
-neg_so <- CreateSeuratObject(counts = t(neg_50k[3:length(colnames(neg_50k))]), project = 'Top 50k Empty Droplets')
-so_merge <- merge(pos_so, neg_so)
-so_merge[['well']] <- rep(well_id, length(so_merge@assays$RNA))
 
+if(background_available) {
+  neg_50k <- neg[order(neg$total, decreasing = T),]
+  neg_50k <- neg_50k[1:50000,]
+  rownames(neg_50k) <- neg_50k$cell_barcode
+  
+  neg_so <- CreateSeuratObject(counts = t(neg_50k[3:length(colnames(neg_50k))]), project = 'Top 50k Empty Droplets')
+  so_merge <- merge(pos_so, neg_so)
+} else {
+  so_merge <- pos_so
+}
+
+so_merge@meta.data$well_id <- well_id
 ```
 
 #### UMAP clustering for ADTs
@@ -155,18 +193,21 @@ pos_adt_sums$adt <- rownames(pos_adt_sums)
 pos_adt_sums$Cell <- rep('True', length(pos_adt_sums$adt))
 colnames(pos_adt_sums) <- c('Count','ADT','Cell')
 
-neg_equal <- neg[order(neg$total, decreasing = T),]
-neg_equal <- neg_equal[1:length(rownames(pos_subset)),]
-rownames(neg_equal) <- neg_equal$cell_barcode
-
-neg_adts <- neg_equal[,3:length(colnames(neg_equal))]
-neg_adt_sums <- data.frame(colSums(neg_adts))
-neg_adt_sums$adt <- rownames(neg_adt_sums)
-neg_adt_sums$Cell <- rep('Background', length(neg_adt_sums$adt))
-colnames(neg_adt_sums) <- c('Count','ADT','Cell')
-
-combined_adts <- rbind(pos_adt_sums, neg_adt_sums)
-                           
+if(background_available) {
+  neg_equal <- neg[order(neg$total, decreasing = T),]
+  neg_equal <- neg_equal[1:length(rownames(pos_subset)),]
+  rownames(neg_equal) <- neg_equal$cell_barcode
+  
+  neg_adts <- neg_equal[,3:length(colnames(neg_equal))]
+  neg_adt_sums <- data.frame(colSums(neg_adts))
+  neg_adt_sums$adt <- rownames(neg_adt_sums)
+  neg_adt_sums$Cell <- rep('Background', length(neg_adt_sums$adt))
+  colnames(neg_adt_sums) <- c('Count','ADT','Cell')
+  
+  combined_adts <- rbind(pos_adt_sums, neg_adt_sums)
+} else {
+  combined_adts <- pos_adt_sums
+}
 ```
 
 [Return to Contents](#contents)
@@ -177,9 +218,24 @@ combined_adts <- rbind(pos_adt_sums, neg_adt_sums)
 <a id="split_violin"></a>
 #### Split Violin Plot
 ```{r split violin plot, fig.width=10, fig.height=8}
-VlnPlot(so_merge, features = 'nCount_RNA', log = T, 
-        pt.size = 0, split.plot = T, split.by = 'orig.ident', group.by = 'well') & geom_hline(yintercept=1000, linetype="dashed", color = "blue") &
-  geom_hline(yintercept=300, linetype="solid", color = "red") & stat_summary(fun=median, geom="point", size=2, color="green") & ggtitle('ADT UMIs/Cell') &
+VlnPlot(so_merge, 
+        features = 'nCount_RNA', 
+        log = T, 
+        pt.size = 0, 
+        split.plot = T, 
+        split.by = 'orig.ident', 
+        group.by = 'well_id') & 
+  geom_hline(yintercept=1000, 
+             linetype="dashed", 
+             color = "blue") &
+  geom_hline(yintercept=300, 
+             linetype = "solid", 
+             color = "red") &
+  stat_summary(fun = median, 
+               geom = "point", 
+               size = 2, 
+               color = "green") &
+  ggtitle('ADT UMIs/Cell') &
   theme(axis.title.x=element_blank())
 ```
 
@@ -187,19 +243,30 @@ VlnPlot(so_merge, features = 'nCount_RNA', log = T,
 
 #### ADT UMIs/Cell Stats
 ```{r ADT UMIs/Cell Stats}
-overall_stats<- data.frame("Total")
+overall_stats <- data.frame("Total")
 overall_stats$pos_adt <- median(pos_subset$total)
-overall_stats$neg_adt <- median(neg_50k$total)
-overall_stats$signal_ratio <- (overall_stats$pos_adt / overall_stats$neg_adt)
-colnames(overall_stats) <-  c('Marker','Median Cells','Median Background','Signal Ratio')
-overall_stats$`Signal Ratio` <- round(overall_stats$`Signal Ratio`, 2)
+
+if(background_available) {
+  overall_stats$neg_adt <- median(neg_50k$total)
+  overall_stats$signal_ratio <- (overall_stats$pos_adt / overall_stats$neg_adt)
+  overall_stats$signal_ratio <- round(overall_stats$signal_ratio, 2)
+
+  names(overall_stats) <-  c('Marker','Median Cells','Median Background','Signal Ratio')
+} else {
+  names(overall_stats) <-  c('Marker','Median Cells')
+}
 
 adt_stats <- data.frame(colnames(pos_adts))
 adt_stats$pos_adts <- apply(pos_adts, 2, median)
-adt_stats$neg_adts <- apply(neg_adts, 2, median)
-adt_stats$signal_ratio <- (adt_stats$pos_adts / adt_stats$neg_adts)
-colnames(adt_stats) <- c('Marker','Median Cells','Median Background','Signal Ratio')
-adt_stats$`Signal Ratio` <- round(adt_stats$`Signal Ratio`, 2)
+
+if(background_available) {
+  adt_stats$neg_adts <- apply(neg_adts, 2, median)
+  adt_stats$signal_ratio <- (adt_stats$pos_adts / adt_stats$neg_adts)
+  colnames(adt_stats) <- c('Marker','Median Cells','Median Background','Signal Ratio')
+  adt_stats$`Signal Ratio` <- round(adt_stats$`Signal Ratio`, 2)
+} else {
+  colnames(adt_stats) <- c('Marker','Median Cells')
+}
 
 final_table <- rbind(overall_stats, adt_stats)
 
@@ -210,16 +277,34 @@ qc_table(final_table)
 
 #### ADT UMIs plot - Linear Scale
 ```{r ADT UMIs plot, fig.width=10, fig.height=6}
-ggplot(combined_adts, aes(x = reorder(ADT, -Count), y = Count, color = Cell)) + geom_point(size = 5) + 
-  geom_hline(yintercept=median(adt_sums$Count), linetype="dashed", color = "blue") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))# + scale_y_log10()
+ggplot(combined_adts, 
+       aes(x = reorder(ADT, -Count), 
+           y = Count, 
+           color = Cell)) + 
+  geom_point(size = 5) + 
+  geom_hline(yintercept = median(adt_sums$Count), 
+             linetype="dashed", 
+             color = "blue") + 
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust=1))
+  # + scale_y_log10()
 ```
 
 #### ADT UMIs plot - Log Scale
 ```{r ADT UMIs plot log, fig.width=10, fig.height=6}
-ggplot(combined_adts, aes(x = reorder(ADT, -Count), y = Count, color = Cell)) + geom_point(size = 5) + 
-  geom_hline(yintercept=median(adt_sums$Count), linetype="dashed", color = "blue") + 
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) + scale_y_log10()
+ggplot(combined_adts, 
+       aes(x = reorder(ADT, -Count), 
+           y = Count + 1, 
+           color = Cell)) + 
+  geom_point(size = 5) + 
+  geom_hline(yintercept = median(adt_sums$Count), 
+             linetype="dashed", 
+             color = "blue") + 
+  theme(axis.text.x = element_text(angle = 90, 
+                                   vjust = 0.5, 
+                                   hjust=1)) + 
+  scale_y_log10()
 ```
 
 
@@ -232,7 +317,15 @@ height = ceiling((n_features / 3) * 2)
 
 #### UMAP clustering for ADTs individually
 ```{r UMAP clustering for ADTs individually, fig.width=10, fig.height=height, message=F, echo=F}
-FeaturePlot(adt_positives, features = rownames(adt_positives), min.cutoff = 'q03', max.cutoff = 'q97', label.size = 1, ncol = 3) & scale_color_viridis(option = 'inferno')
+suppressWarnings(suppressMessages(
+  FeaturePlot(adt_positives, 
+              features = rownames(adt_positives), 
+              min.cutoff = 'q03', 
+              max.cutoff = 'q97', 
+              label.size = 1, 
+              ncol = 3)
+ & scale_color_viridis(option = 'inferno')
+))
 ```
 
 [Return to Contents](#contents)
