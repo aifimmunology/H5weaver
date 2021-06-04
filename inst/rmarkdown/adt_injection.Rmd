@@ -100,7 +100,7 @@ if(!dir.exists(out_dir)) {
 }
 ```
 
-#### Barcode matching & subsetting - still getting error
+#### Barcode matching & subsetting
 ```{r barcode matching}
 # retrieve barcodes
 h5_barcodes <- h5_list$matrix$observations$original_barcodes
@@ -113,6 +113,12 @@ common_adt_matrix <- adt_counts[common_barcodes,]
 h5_list <- H5weaver::subset_h5_list_by_observations(h5_list,
                                                     match_values = common_barcodes,
                                                     match_target = 'original_barcodes')
+# update barcodes to match RNA
+old_barcodes <- h5_list$matrix$observations$original_barcodes
+new_barcodes <- h5_list$matrix$barcodes
+rownames(common_adt_matrix) <- new_barcodes[match(rownames(common_adt_matrix), old_barcodes)]
+# match order of cells to RNA
+common_adt_matrix[new_barcodes,]
 ```
 
 #### Add ADT info to the .h5
