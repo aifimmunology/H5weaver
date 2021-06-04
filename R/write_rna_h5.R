@@ -188,6 +188,28 @@ write_h5_list <- function(h5_list,
       if(class(h5_list[[h5_name]]) == "list") {
         rhdf5::h5createGroup(h5_handle,
                              group = new_object)
+
+        # Write group attributes (used in .h5ad files)
+        list_attr <- attributes(h5_list[[h5_name]])
+        list_attr_names <- setdiff(names(list_attr), "names")
+
+        if(length(list_attr) > 0) {
+          list_obj <- H5Gopen(h5_handle, new_object)
+          for(list_attr_name in list_attr_names) {
+            if(class(list_attr[[list_attr_name]]) == "character") {
+              h5writeAttribute.character(attr = list_attr[[list_attr_name]],
+                                         h5obj = list_obj,
+                                         name = list_attr_name)
+            } else {
+              h5writeAttribute(attr = list_attr[[list_attr_name]],
+                               h5obj = list_obj,
+                               name = list_attr_name)
+            }
+
+          }
+          H5Gclose(list_obj)
+        }
+
         # Recurse function to write children of list
         H5weaver::write_h5_list(h5_list[[h5_name]],
                                 h5_file = h5_file,
