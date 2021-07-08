@@ -286,13 +286,13 @@ merge_h5_seurat <- function(h5_path_list) {
   keep_cols <- Reduce(intersect, cell_meta_colnames) 
   cell_meta_list <- parLapply(cl, cell_meta_list, subset, select=keep_cols) 
   final_cmeta <- Reduce(function(cm1, cm2) rbind(cm1, cm2, fill=TRUE), cell_meta_list)
-  rownames(final_cmeta) <- final_cmeta$barcodes 
-  
+
   # find intersection of features among all data sets, and only keep those when combining into a single object 
   mat_list <- parLapply(cl, h5_path_list, H5weaver::read_h5_dgCMatrix)
   matrix_features <- parLapply(cl, mat_list, rownames)
   keep_rows <- Reduce(intersect, matrix_features)
-  mat_list <- parLapply(cl, mat_list,
+  mat_list <- parLapply(cl, 
+                        mat_list,
                         function (c, kr) { 
                           c[kr,]
                         }, 
