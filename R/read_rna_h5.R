@@ -270,7 +270,10 @@ read_h5_seurat <- function(h5_file,
 #' @export
 merge_h5_seurat <- function(h5_path_list) {
   
-  assertthat::assert_that((is.list(h5_path_list)))
+  if (length(h5_path_list) == 1) { 
+    so <- read_h5_seurat(h5_path_list)
+    return(so)
+  }
   
   # set up for parallel computing: 
   no_cores <- detectCores() - 1  
