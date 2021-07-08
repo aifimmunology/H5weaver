@@ -259,6 +259,50 @@ read_h5_seurat <- function(h5_file,
   so
 }
 
+
+#' Reads a list of h5 files, merges them together and returns a single Seurat Object
+#'
+#' By default, matrix data will be stored in the "RNA" assay.
+#'
+#'
+#' @param h5_path_list list of filepaths to h5 files. 
+#' @return a Seurat Class object
+#' @export
+merge_h5_seurat <- function(h5_path_list) {
+  
+  assertthat::assert_that((is.list(h5_path_list)))
+  
+  # set up for parallel computing: 
+  no_cores <- detectCores() - 1  
+  registerDoParallel(cores=no_cores)  
+  cl <- makeCluster(no_cores) 
+  
+  # create list of data.frames of cell_meta_data, then combine into a single object
+  cell_meta_list <- parLapply(cl, h5_path_list, H5weaver::read_h5_cell_meta)
+  cell_meta_colnames <- parLapply(cl, cell_meta_list, colnames)
+  keep_cols <- Reduce(intersect, cell_meta_colnames) 
+  cell_meta_list <- parLapply(cl, cell_meta_list, subset, select=keep_cols) 
+  final_cmeta <- Reduce(function(cm1, cm2) rbind(cm1, cm2, fill=TRUE), cell_meta_list)
+  rownames(final_cmeta) <- final_cmeta$barcodes 
+  
+  # find intersection of features among all data sets, and only keep those when combining into a single object 
+  mat_list <- parLapply(cl, h5_path_list, H5weaver::read_h5_dgCMatrix)
+  matrix_features <- parLapply(cl, mat_list, rownames)
+  keep_rows <- Reduce(intersect, matrix_features)
+  mat_list <- parLapply(cl, mat_list,
+                        function (c, kr) { 
+                          c[kr,]
+                        }, 
+                        keep_rows)
+  final_mat <- Reduce(function(m1, m2) cbind(m1,m2), mat_list)
+  
+  # now create a seurat object 
+  so <- Seurat::CreateSeuratObject(counts = final_mat,
+                                   meta.data = final_cmeta) 
+  so
+}
+
+
 #' Read .h5 directly into a SingleCellExperiment object
 #'
 #' By default, matrix data will be stored in the "counts" assay.
