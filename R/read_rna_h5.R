@@ -270,6 +270,8 @@ read_h5_seurat <- function(h5_file,
 #' @export
 merge_h5_seurat <- function(h5_path_list) {
   
+  # allow user to submit a vector or list 
+  assertthat::assert_that(typeof(h5_path_list) %in% c('character','list'))
   if (length(h5_path_list) == 1) { 
     so <- read_h5_seurat(h5_path_list)
     return(so)
