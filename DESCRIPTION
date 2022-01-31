@@ -22,4 +22,4 @@ Suggests:
   Seurat (>= 3.1.0),
   SingleCellExperiment (>= 1.8.0),
   SummarizedExperiment (>= 1.16.1)
-RoxygenNote: 7.1.1
+RoxygenNote: 7.1.2

@@ -253,6 +253,38 @@ write_h5_list <- function(h5_list,
 
 }
 
+#' Write a Seurat Object to an .h5 file
+#'
+#' Note: Only retains count data, not normalized values
+#'
+#' @param so a Seurat Object
+#' @param h5_file a character object specifying the location of a .h5 file to write to.
+#' @param overwrite a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.S
+#'
+#' @return Writes a file; no return to R.
+#' @export
+#'
+write_seurat_h5 <- function(so, h5_file, overwrite = FALSE) {
+    if(!overwrite & file.exists(h5_file)) {
+        stop(paste("File",h5_file,"exists. Set overwrite = TRUE to replace."))
+    }
+    
+    h5_list <- list(
+        matrix_dgCMatrix = so@assays$RNA@counts,
+        matrix = list(
+            observations = as.list(so@meta.data)
+        )
+    )
+    
+    h5_list <- h5_list_convert_from_dgCMatrix(h5_list, "matrix")
+    
+    if("ADT" %in% names(so@assays)) {
+        h5_list$ADT_dgCMatrix = so@assays$ADT@counts
+        h5_list <- h5_list_convert_from_dgCMatrix(h5_list, "ADT")
+    }
+    
+    write_h5_list(h5_list, h5_file)
+}
 
 ######## Functions below are for future use - if we need appendable HDF5 datasets
 ######## They are not exported by the package.
