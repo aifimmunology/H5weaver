@@ -1,0 +1,326 @@
+---
+title: "Add 5 Prime Contig Data to H5 Metadata"
+author: 
+ - Qiuyu Gong ; Lucas Graybuck
+date: "`r format(Sys.time(), '%Y-%m-%d')`"
+output:
+  html_document:
+    code_folding: hide
+    df_print: paged
+    self_contained: true
+params:
+  in_h5: NULL
+  in_contig: NULL
+  in_category: NULL
+  in_batch: NULL
+  out_dir: NULL
+---
+
+<a id="contents"></a>
+
+## Contents
+
+
+
+#### [Session Info](#session_info)
+
+<a id="data_processing"></a>
+
+## Data Processing
+
+<a id="session_preparation"></a>
+
+### Session Preparation
+
+
+#### Load libraries:
+```{r Load Libraries}
+start_time <- Sys.time()
+
+quiet_library <- function(...) {
+  suppressPackageStartupMessages(library(...))
+}
+quiet_library(dplyr)
+quiet_library(circlize)
+
+quiet_library(rhdf5)
+quiet_library(H5weaver)
+quiet_library(Matrix)
+quiet_library(tidyr)
+quiet_library(cowplot)
+quiet_library(jsonlite)
+quiet_library(stringr)
+quiet_library(reshape)
+quiet_library(stringi)
+quiet_library(Seurat)
+```
+
+```{r Declare start}
+stm("Starting Adding Contig data into H5 metadata")
+```
+
+Argument Parsing  
+```{r parse_arguments}
+# give input directory rna-specific name 
+if(is.null(params$in_h5)) {
+stm(paste0("Please provide input h5"))
+
+
+} else {
+  in_h5 <- params$in_h5  
+  in_contig <- params$in_contig
+  in_category <- params$in_category  
+  out_dir <- params$out_dir
+  in_batch<- params$in_batch
+  
+}
+
+
+
+stm(paste0("IN H5    : ", in_h5))
+stm(paste0("IN Contig    : ", in_contig))
+stm(paste0("IN Category   : ", in_category))
+stm(paste0("OUT Dir        : ", out_dir))
+stm(paste0("Batch ID        : ", in_batch))
+
+print(paste0("IN H5        : ", in_h5))
+print(paste0("IN Contig    : ", in_contig))
+print(paste0("IN Category       : ", in_category))
+print(paste0("OUT Dir         : ", out_dir))
+print(paste0("Batch ID        : ", in_batch))
+
+```  
+
+
+
+Check input files  
+```{r check_input_main}
+if(!file.exists(in_h5)) {
+  stm(paste("ERROR: Cannot find IN H5:", in_h5))
+  stop()
+}
+if(!file.exists(in_contig)) {
+  stm(paste("ERROR: Cannot find IN Contig:", in_contig))
+  stop()
+}
+
+if(!dir.exists(out_dir)) {
+  stm(paste("Creating output directory:", out_dir))
+  dir.create(out_dir)
+}
+
+batch_id<-in_batch
+out_prefix <- file.path(out_dir, paste0(batch_id, "_"))
+
+```
+
+#### Create out directory if missing
+```{r Create Out Dir}
+if(!dir.exists(out_dir)) {
+  stm(paste0("Creating Output Directory: ",out_dir))
+  dir.create(out_dir, 
+             recursive = TRUE)
+}
+```
+
+[Return to Contents](#contents)
+
+### Load inputs
+
+#### Load scRNA-seq Dataset
+```{r Load Query}
+stm(paste0("Loading HDF5 from ", in_h5))
+h5_list <- h5dump(in_h5)
+```
+
+#### Load Contig Files
+```{r Load Contig}
+stm(paste0("Loading Contig from ", in_contig))
+contig<-read.csv(in_contig)
+```
+
+#### Regroup Clonotype
+```{r Regrouping}
+contig$ChainDetail<- paste0(contig$chain,":",contig$cdr3)
+well_id<-unique(contig$Well_ID)
+
+get_clonotyoe_consensus <- lapply(well_id, function(x){
+    
+    single_clonetype<-unique(contig %>% dplyr::filter (Well_ID==x) %>% 
+                             dplyr::select (raw_clonotype_id,raw_consensus_id,ChainDetail))
+    
+    single_clonetype<-single_clonetype[with(single_clonetype, order(raw_consensus_id, raw_clonotype_id)), ]
+
+    df<-single_clonetype %>% 
+        group_by(raw_clonotype_id) %>% 
+        summarise(val=paste(ChainDetail, collapse=";"))
+    
+    number_of_clonetype<-contig  %>% 
+        dplyr::filter (Well_ID==x) %>% 
+        dplyr::select (raw_clonotype_id,raw_consensus_id,ChainDetail)%>% 
+        group_by(raw_clonotype_id,raw_consensus_id) %>% 
+        tally()%>%  
+        group_by(raw_clonotype_id) %>%
+        dplyr::slice(which.max(n))
+    
+    df<-left_join(df ,number_of_clonetype, by=c("raw_clonotype_id")) 
+    df<-df%>% dplyr::select (raw_clonotype_id,val,n)
+    df<-df[order(df$n,decreasing = TRUE),]
+    
+    df$Well_ID<-x
+    return (df)
+})
+
+All_consensus_id <- do.call(rbind,get_clonotyoe_consensus)
+
+new_clonotype<-All_consensus_id %>% 
+  group_by(val) %>% 
+  summarise(Number_of_clonotype= sum(n))  %>%arrange( -Number_of_clonotype) 
+new_clonotype$raw_clonotype_id_new<-paste0("clonotype",seq(1:dim(new_clonotype)[1]))
+
+All_consensus_id<-left_join(All_consensus_id,new_clonotype, by=c("val"))
+
+new_contig<-left_join(contig,All_consensus_id,by=c("raw_clonotype_id","Well_ID")) 
+
+new_contig$raw_clonotype_id<-new_contig$raw_clonotype_id_new
+new_contig$raw_consensus_id<-paste0(new_contig$raw_clonotype_id,stri_sub(new_contig$raw_consensus_id,-12))
+new_contig<-new_contig[,1:35]
+colnames(new_contig)[35]<-"ClonotypeDetail"
+
+```
+
+#### Replcace Cell UUID
+```{r Replaceing}
+stm(paste0("Replacing Barcodes with Cell UUID "))
+so <- read_h5_seurat(in_h5,
+                     feature_names = "name")
+cellUUId<-so[[]]
+
+cellUUId$barcode<-paste0(cellUUId$original_barcodes,"-1")
+cellUUId$Well_ID<-stri_sub(cellUUId$well_id,-6)
+new_contig<-left_join(new_contig,cellUUId,by=c("Well_ID","barcode"))
+new_contig$barcode<-new_contig$cell_uuid
+new_contig$contig_id<-paste0(new_contig$barcode,stri_sub(new_contig$contig_id,-9))
+new_contig<-new_contig[1:35]
+
+```
+
+#### Write Out New Contig files
+```{r write_out_contig}
+
+write.csv(new_contig,paste0(out_dir,"/",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+
+```
+
+
+#### Add Contig into H5
+```{r add_contig}
+
+new_contig$contig_id_group<-stri_sub(new_contig$contig_id,-8)
+
+reformated_contig_df<-reshape(new_contig, idvar = "barcode", timevar = "contig_id_group", direction = "wide")
+ClonotypeDetail<-reformated_contig_df$ClonotypeDetail.contig_1
+
+reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>% 
+                 dplyr::select(-contains("ChainDetail"))%>% 
+                 dplyr::select(-contains("Batch_ID"))%>% 
+                 dplyr::select(-contains("ClonotypeDetail"))
+                 
+colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]]<-paste0(in_category,".",colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]])
+colnames(reformated_contig_df)[1]<-"cell_uuid"
+reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("cell_uuid"))
+reformated_contig_df<-reformated_contig_df %>% dplyr::select(contains(in_category))
+cols<-colnames(reformated_contig_df)
+
+
+```
+
+
+#### Write Out H5
+```{r write_out_h5}
+for (i in cols){
+    h5_list <- set_list_path(h5_list,
+                             paste0("/matrix/observations/",i),
+                             pull(reformated_contig_df[i]) )                  
+}
+write_h5_list(h5_list,
+              h5_file = paste0(out_dir,"/",unique(cellUUId$pbmc_sample_id),".h5"),
+              overwrite = TRUE)
+
+```
+
+#### ChordDiagram V-J Chain Usage
+
+
+
+
+```{r ChordDiagram ,fig.width=20, fig.height=20}
+
+Chord_df<-new_contig    %>% group_by(v_gene,j_gene) %>% 
+        tally()%>% as.data.frame()
+
+colnames(Chord_df)[3]<-"Numbers"
+
+V <- sort(unique(unlist(strsplit(paste(Chord_df$v_gene, collapse=","), ","))))
+J <- sort(unique(unlist(strsplit(paste(Chord_df$j_gene, collapse=","), ","))))
+mat <- matrix(nrow = length(J), ncol = length(V))
+colnames(mat) <- V
+rownames(mat) <- J
+
+for (j in seq(1:length(J))) {
+  for (v in seq(1:length(V))) {
+  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) & 
+               str_detect(Chord_df$j_gene, J[[j]], negate = FALSE)),]
+  mat[j,v] <- sum(sub$Numbers)
+  }
+}
+
+mat <- mat/sum(mat)
+
+# reorder by V and J decreasing order (left to right)
+vmax <- colSums(mat)
+jmax <- rowSums(mat) 
+mat2 <- mat[order(jmax, decreasing = FALSE), order(vmax, decreasing = TRUE)]
+
+chordDiagram(mat2, annotationTrack = "grid", preAllocateTracks = 1)
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, 
+              CELL_META$ylim[1], 
+              CELL_META$sector.index, 
+              facing = "clockwise", 
+              niceFacing = TRUE,
+              adj = c(-0.25, 0.5))
+}, bg.border = NA)
+
+```
+
+
+
+
+
+
+
+
+[Return to Contents](#contents)
+
+<a id="session_info"></a>
+
+## Session Information
+
+```{r Session Info}
+sessionInfo()
+```
+
+Total time elapsed
+```{r Show Time}
+end_time <- Sys.time()
+diff_time <- end_time - start_time
+time_message <- paste0("Elapsed Time: ", 
+                       round(diff_time, 3),
+                       " ", units(diff_time))
+print(time_message)
+stm(time_message)
+stm("H5 metadata process complete.")
+```
+
+[Return to Contents](#contents)
