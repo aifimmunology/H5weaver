@@ -141,6 +141,8 @@ contig<-read.csv(in_contig)
 
 #### Regroup Clonotype
 ```{r Regrouping}
+
+if ("Well_ID" %in% colnames(contig)){
 contig$ChainDetail<- paste0(contig$chain,":",contig$cdr3)
 well_id<-unique(contig$Well_ID)
 
@@ -186,11 +188,13 @@ new_contig$raw_clonotype_id<-new_contig$raw_clonotype_id_new
 new_contig$raw_consensus_id<-paste0(new_contig$raw_clonotype_id,stri_sub(new_contig$raw_consensus_id,-12))
 new_contig<-new_contig[,1:35]
 colnames(new_contig)[35]<-"ClonotypeDetail"
-
+} 
 ```
 
 #### Replcace Cell UUID
 ```{r Replaceing}
+if ("Well_ID" %in% colnames(contig)){
+
 stm(paste0("Replacing Barcodes with Cell UUID "))
 so <- read_h5_seurat(in_h5,
                      feature_names = "name")
@@ -202,19 +206,21 @@ new_contig<-left_join(new_contig,cellUUId,by=c("Well_ID","barcode"))
 new_contig$barcode<-new_contig$cell_uuid
 new_contig$contig_id<-paste0(new_contig$barcode,stri_sub(new_contig$contig_id,-9))
 new_contig<-new_contig[1:35]
-
+}
 ```
 
 #### Write Out New Contig files
 ```{r write_out_contig}
+if ("Well_ID" %in% colnames(contig)){
 
 write.csv(new_contig,paste0(out_dir,"/",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
-
+}
 ```
 
 
 #### Add Contig into H5
 ```{r add_contig}
+if ("Well_ID" %in% colnames(contig)){
 
 new_contig$contig_id_group<-stri_sub(new_contig$contig_id,-8)
 
@@ -231,7 +237,37 @@ colnames(reformated_contig_df)[1]<-"cell_uuid"
 reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("cell_uuid"))
 reformated_contig_df<-reformated_contig_df %>% dplyr::select(contains(in_category))
 cols<-colnames(reformated_contig_df)
+}else{
 
+
+so <- read_h5_seurat(in_h5,
+                     feature_names = "name")
+
+cellUUId<-so[[]]
+cellUUId$barcode<-paste0(cellUUId$original_barcodes,"-1")
+cellUUId$Well_ID<-stri_sub(cellUUId$well_id,-6)
+contig$contig_id_group<-stri_sub(contig$contig_id,-8)
+cellUUId_sub<-cellUUId %>% select (cell_uuid,barcode)
+
+contig<-left_join(contig,cellUUId_sub) 
+contig$barcode<-contig$cell_uuid
+reformated_contig_df<-reshape(contig, idvar = "barcode", timevar = "contig_id_group", direction = "wide")
+ClonotypeDetail<-reformated_contig_df$ClonotypeDetail.contig_1
+
+reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>% 
+                 dplyr::select(-contains("ChainDetail"))%>% 
+                 dplyr::select(-contains("Batch_ID"))%>% 
+                 dplyr::select(-contains("ClonotypeDetail"))
+
+
+colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]]<-paste0(in_category,".",colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]])
+colnames(reformated_contig_df)[1]<-"barcodes"
+reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("barcodes"))
+reformated_contig_df<-reformated_contig_df %>% dplyr::select(contains(in_category))
+cols<-colnames(reformated_contig_df)
+write.csv(contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+
+}
 
 ```
 
