@@ -272,7 +272,7 @@ colnames(reformated_contig_df)[1]<-"barcodes"
 reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("barcodes"))
 reformated_contig_df<-reformated_contig_df %>% dplyr::select(contains(in_category))
 cols<-colnames(reformated_contig_df)
-write.csv(contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+write.csv(contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",sample_id,"_filtered_contig_",in_category,".csv"),row.names=FALSE)
 
 }
 
@@ -287,7 +287,7 @@ for (i in cols){
                              pull(reformated_contig_df[i]) )                  
 }
 write_h5_list(h5_list,
-              h5_file = paste0(out_dir,"/",unique(cellUUId$pbmc_sample_id),".h5"),
+              h5_file = paste0(out_dir,"/",unique(so[[]]$pool_id),"_",sample_id,".h5"),
               overwrite = TRUE)
 
 ```
