@@ -143,6 +143,8 @@ contig<-read.csv(in_contig)
 ```{r Regrouping}
 
 if ("Well_ID" %in% colnames(contig)){
+stm("Hashed regrouping Clonotype ")
+
 contig$ChainDetail<- paste0(contig$chain,":",contig$cdr3)
 well_id<-unique(contig$Well_ID)
 
@@ -188,7 +190,12 @@ new_contig$raw_clonotype_id<-new_contig$raw_clonotype_id_new
 new_contig$raw_consensus_id<-paste0(new_contig$raw_clonotype_id,stri_sub(new_contig$raw_consensus_id,-12))
 new_contig<-new_contig[,1:35]
 colnames(new_contig)[35]<-"ClonotypeDetail"
-} 
+} else {
+
+
+stm("Non-Hashed Skipping regrouping")
+
+}
 ```
 
 #### Replcace Cell UUID
@@ -291,6 +298,7 @@ write_h5_list(h5_list,
 
 
 ```{r ChordDiagram ,fig.width=20, fig.height=20}
+if ("Well_ID" %in% colnames(contig)){
 
 Chord_df<-new_contig    %>% group_by(v_gene,j_gene) %>% 
         tally()%>% as.data.frame()
@@ -327,7 +335,46 @@ circos.track(track.index = 1, panel.fun = function(x, y) {
               niceFacing = TRUE,
               adj = c(-0.25, 0.5))
 }, bg.border = NA)
+}else {
 
+Chord_df<-contig    %>% group_by(v_gene,j_gene) %>% 
+        tally()%>% as.data.frame()
+
+colnames(Chord_df)[3]<-"Numbers"
+
+V <- sort(unique(unlist(strsplit(paste(Chord_df$v_gene, collapse=","), ","))))
+J <- sort(unique(unlist(strsplit(paste(Chord_df$j_gene, collapse=","), ","))))
+mat <- matrix(nrow = length(J), ncol = length(V))
+colnames(mat) <- V
+rownames(mat) <- J
+
+for (j in seq(1:length(J))) {
+  for (v in seq(1:length(V))) {
+  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) & 
+               str_detect(Chord_df$j_gene, J[[j]], negate = FALSE)),]
+  mat[j,v] <- sum(sub$Numbers)
+  }
+}
+
+mat <- mat/sum(mat)
+
+# reorder by V and J decreasing order (left to right)
+vmax <- colSums(mat)
+jmax <- rowSums(mat) 
+mat2 <- mat[order(jmax, decreasing = FALSE), order(vmax, decreasing = TRUE)]
+
+chordDiagram(mat2, annotationTrack = "grid", preAllocateTracks = 1)
+circos.track(track.index = 1, panel.fun = function(x, y) {
+  circos.text(CELL_META$xcenter, 
+              CELL_META$ylim[1], 
+              CELL_META$sector.index, 
+              facing = "clockwise", 
+              niceFacing = TRUE,
+              adj = c(-0.25, 0.5))
+}, bg.border = NA)
+
+
+}
 ```
 
 
