@@ -72,6 +72,7 @@ stm(paste0("Please provide input h5"))
   in_category <- params$in_category  
   out_dir <- params$out_dir
   in_batch<- params$in_batch
+  sample_id<- params$sample_id
   
 }
 
