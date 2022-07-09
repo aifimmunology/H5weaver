@@ -288,9 +288,18 @@ for (i in cols){
                              paste0("/matrix/observations/",i),
                              pull(reformated_contig_df[i]) )                  
 }
+
+if ("Well_ID" %in% colnames(contig)){
+write_h5_list(h5_list,
+              h5_file = paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(so[[]]$pbmc_sample_id),".h5"),
+              overwrite = TRUE)
+}else {
+
 write_h5_list(h5_list,
               h5_file = paste0(out_dir,"/",unique(so[[]]$pool_id),"_",sample_id,".h5"),
               overwrite = TRUE)
+
+}
 
 ```
 
