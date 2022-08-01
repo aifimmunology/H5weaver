@@ -1,6 +1,6 @@
 ---
 title: "Add 5 Prime Contig Data to H5 Metadata"
-author: 
+author:
  - Qiuyu Gong ; Lucas Graybuck
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
@@ -62,7 +62,7 @@ stm("Starting Adding Contig data into H5 metadata")
 
 Argument Parsing  
 ```{r parse_arguments}
-# give input directory rna-specific name 
+# give input directory rna-specific name
 if(is.null(params$in_h5)) {
 stm(paste0("Please provide input h5"))
 
@@ -74,7 +74,7 @@ stm(paste0("Please provide input h5"))
   out_dir <- params$out_dir
   in_batch<- params$in_batch
   sample_id<- params$sample_id
-  
+
 }
 
 
@@ -120,7 +120,7 @@ out_prefix <- file.path(out_dir, paste0(batch_id, "_"))
 ```{r Create Out Dir}
 if(!dir.exists(out_dir)) {
   stm(paste0("Creating Output Directory: ",out_dir))
-  dir.create(out_dir, 
+  dir.create(out_dir,
              recursive = TRUE)
 }
 ```
@@ -151,42 +151,42 @@ contig$ChainDetail<- paste0(contig$chain,":",contig$cdr3)
 well_id<-unique(contig$Well_ID)
 
 get_clonotyoe_consensus <- lapply(well_id, function(x){
-    
-    single_clonetype<-unique(contig %>% dplyr::filter (Well_ID==x) %>% 
+
+    single_clonetype<-unique(contig %>% dplyr::filter (Well_ID==x) %>%
                              dplyr::select (raw_clonotype_id,raw_consensus_id,ChainDetail))
-    
+
     single_clonetype<-single_clonetype[with(single_clonetype, order(raw_consensus_id, raw_clonotype_id)), ]
 
-    df<-single_clonetype %>% 
-        group_by(raw_clonotype_id) %>% 
+    df<-single_clonetype %>%
+        group_by(raw_clonotype_id) %>%
         summarise(val=paste(ChainDetail, collapse=";"))
-    
-    number_of_clonetype<-contig  %>% 
-        dplyr::filter (Well_ID==x) %>% 
-        dplyr::select (raw_clonotype_id,raw_consensus_id,ChainDetail)%>% 
-        group_by(raw_clonotype_id,raw_consensus_id) %>% 
+
+    number_of_clonetype<-contig  %>%
+        dplyr::filter (Well_ID==x) %>%
+        dplyr::select (raw_clonotype_id,raw_consensus_id,ChainDetail)%>%
+        group_by(raw_clonotype_id,raw_consensus_id) %>%
         tally()%>%  
         group_by(raw_clonotype_id) %>%
         dplyr::slice(which.max(n))
-    
-    df<-left_join(df ,number_of_clonetype, by=c("raw_clonotype_id")) 
+
+    df<-left_join(df ,number_of_clonetype, by=c("raw_clonotype_id"))
     df<-df%>% dplyr::select (raw_clonotype_id,val,n)
     df<-df[order(df$n,decreasing = TRUE),]
-    
+
     df$Well_ID<-x
     return (df)
 })
 
 All_consensus_id <- do.call(rbind,get_clonotyoe_consensus)
 
-new_clonotype<-All_consensus_id %>% 
-  group_by(val) %>% 
-  summarise(Number_of_clonotype= sum(n))  %>%arrange( -Number_of_clonotype) 
+new_clonotype<-All_consensus_id %>%
+  group_by(val) %>%
+  summarise(Number_of_clonotype= sum(n))  %>%arrange( -Number_of_clonotype)
 new_clonotype$raw_clonotype_id_new<-paste0("clonotype",seq(1:dim(new_clonotype)[1]))
 
 All_consensus_id<-left_join(All_consensus_id,new_clonotype, by=c("val"))
 
-new_contig<-left_join(contig,All_consensus_id,by=c("raw_clonotype_id","Well_ID")) 
+new_contig<-left_join(contig,All_consensus_id,by=c("raw_clonotype_id","Well_ID"))
 
 new_contig$raw_clonotype_id<-new_contig$raw_clonotype_id_new
 new_contig$raw_consensus_id<-paste0(new_contig$raw_clonotype_id,stri_sub(new_contig$raw_consensus_id,-12))
@@ -210,7 +210,8 @@ so <- read_h5_seurat(in_h5,
 cellUUId<-so[[]]
 
 cellUUId$barcode<-paste0(cellUUId$original_barcodes,"-1")
-cellUUId$Well_ID<-stri_sub(cellUUId$well_id,-6)
+#cellUUId$Well_ID<-stri_sub(cellUUId$well_id,-6)
+cellUUId$Well_ID<-cellUUId$well_id
 new_contig<-left_join(new_contig,cellUUId,by=c("Well_ID","barcode"))
 new_contig$barcode<-new_contig$cell_uuid
 new_contig$contig_id<-paste0(new_contig$barcode,stri_sub(new_contig$contig_id,-9))
@@ -236,11 +237,11 @@ new_contig$contig_id_group<-stri_sub(new_contig$contig_id,-8)
 reformated_contig_df<-reshape(new_contig, idvar = "barcode", timevar = "contig_id_group", direction = "wide")
 ClonotypeDetail<-reformated_contig_df$ClonotypeDetail.contig_1
 
-reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>% 
-                 dplyr::select(-contains("ChainDetail"))%>% 
-                 dplyr::select(-contains("Batch_ID"))%>% 
+reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>%
+                 dplyr::select(-contains("ChainDetail"))%>%
+                 dplyr::select(-contains("Batch_ID"))%>%
                  dplyr::select(-contains("ClonotypeDetail"))
-                 
+
 colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]]<-paste0(in_category,".",colnames(reformated_contig_df)[2:dim(reformated_contig_df)[2]])
 colnames(reformated_contig_df)[1]<-"cell_uuid"
 reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("cell_uuid"))
@@ -258,14 +259,14 @@ cellUUId$Well_ID<-stri_sub(cellUUId$well_id,-6)
 contig$contig_id_group<-stri_sub(contig$contig_id,-8)
 cellUUId_sub<-cellUUId %>% select (cell_uuid,barcode)
 
-contig<-left_join(contig,cellUUId_sub) 
+contig<-left_join(contig,cellUUId_sub)
 contig$barcode<-contig$cell_uuid
 reformated_contig_df<-reshape(contig, idvar = "barcode", timevar = "contig_id_group", direction = "wide")
 ClonotypeDetail<-reformated_contig_df$ClonotypeDetail.contig_1
 
-reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>% 
-                 dplyr::select(-contains("ChainDetail"))%>% 
-                 dplyr::select(-contains("Batch_ID"))%>% 
+reformated_contig_df <- reformated_contig_df %>% dplyr::select(-contains("Well_ID")) %>%
+                 dplyr::select(-contains("ChainDetail"))%>%
+                 dplyr::select(-contains("Batch_ID"))%>%
                  dplyr::select(-contains("ClonotypeDetail"))
 
 
@@ -311,7 +312,7 @@ write_h5_list(h5_list,
 ```{r ChordDiagram ,fig.width=20, fig.height=20}
 if ("Well_ID" %in% colnames(contig)){
 
-Chord_df<-new_contig    %>% group_by(v_gene,j_gene) %>% 
+Chord_df<-new_contig    %>% group_by(v_gene,j_gene) %>%
         tally()%>% as.data.frame()
 
 colnames(Chord_df)[3]<-"Numbers"
@@ -324,7 +325,7 @@ rownames(mat) <- J
 
 for (j in seq(1:length(J))) {
   for (v in seq(1:length(V))) {
-  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) & 
+  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) &
                str_detect(Chord_df$j_gene, J[[j]], negate = FALSE)),]
   mat[j,v] <- sum(sub$Numbers)
   }
@@ -334,21 +335,21 @@ mat <- mat/sum(mat)
 
 # reorder by V and J decreasing order (left to right)
 vmax <- colSums(mat)
-jmax <- rowSums(mat) 
+jmax <- rowSums(mat)
 mat2 <- mat[order(jmax, decreasing = FALSE), order(vmax, decreasing = TRUE)]
 
 chordDiagram(mat2, annotationTrack = "grid", preAllocateTracks = 1)
 circos.track(track.index = 1, panel.fun = function(x, y) {
-  circos.text(CELL_META$xcenter, 
-              CELL_META$ylim[1], 
-              CELL_META$sector.index, 
-              facing = "clockwise", 
+  circos.text(CELL_META$xcenter,
+              CELL_META$ylim[1],
+              CELL_META$sector.index,
+              facing = "clockwise",
               niceFacing = TRUE,
               adj = c(-0.25, 0.5))
 }, bg.border = NA)
 }else {
 
-Chord_df<-contig    %>% group_by(v_gene,j_gene) %>% 
+Chord_df<-contig    %>% group_by(v_gene,j_gene) %>%
         tally()%>% as.data.frame()
 
 colnames(Chord_df)[3]<-"Numbers"
@@ -361,7 +362,7 @@ rownames(mat) <- J
 
 for (j in seq(1:length(J))) {
   for (v in seq(1:length(V))) {
-  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) & 
+  sub <- Chord_df[(str_detect(Chord_df$v_gene, V[[v]], negate = FALSE) &
                str_detect(Chord_df$j_gene, J[[j]], negate = FALSE)),]
   mat[j,v] <- sum(sub$Numbers)
   }
@@ -371,15 +372,15 @@ mat <- mat/sum(mat)
 
 # reorder by V and J decreasing order (left to right)
 vmax <- colSums(mat)
-jmax <- rowSums(mat) 
+jmax <- rowSums(mat)
 mat2 <- mat[order(jmax, decreasing = FALSE), order(vmax, decreasing = TRUE)]
 
 chordDiagram(mat2, annotationTrack = "grid", preAllocateTracks = 1)
 circos.track(track.index = 1, panel.fun = function(x, y) {
-  circos.text(CELL_META$xcenter, 
-              CELL_META$ylim[1], 
-              CELL_META$sector.index, 
-              facing = "clockwise", 
+  circos.text(CELL_META$xcenter,
+              CELL_META$ylim[1],
+              CELL_META$sector.index,
+              facing = "clockwise",
               niceFacing = TRUE,
               adj = c(-0.25, 0.5))
 }, bg.border = NA)
@@ -409,7 +410,7 @@ Total time elapsed
 ```{r Show Time}
 end_time <- Sys.time()
 diff_time <- end_time - start_time
-time_message <- paste0("Elapsed Time: ", 
+time_message <- paste0("Elapsed Time: ",
                        round(diff_time, 3),
                        " ", units(diff_time))
 print(time_message)
