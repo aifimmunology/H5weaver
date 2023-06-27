@@ -21,5 +21,7 @@ Suggests:
   testthat (>= 2.1.0),
   Seurat (>= 3.1.0),
   SingleCellExperiment (>= 1.8.0),
-  SummarizedExperiment (>= 1.16.1)
+  SummarizedExperiment (>= 1.16.1),
+  assertthat,
+  R.utils
 RoxygenNote: 7.1.1
