@@ -6,7 +6,7 @@ Author: Lucas Graybuck <lucasg@alleninstitute.org>
 Authors@R: c(person("Lucas", "Graybuck", email = "lucasg@alleninstitute.org",
                   role = c("aut", "cre")),
              person("Lauren", "Okada", email = "lauren.okada@alleninstitute.org",
-                  role = c("aut")))
+                  role = c("ctb")))
 Maintainer: Lucas Graybuck <lucasg@alleninstitute.org>
 Description: This package provides functions for reading, writing, combining, and rearranging HDF5 files with conventions from 10x Genomics.
 License: Allen Institute Software License
