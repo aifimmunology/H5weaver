@@ -234,7 +234,7 @@ read_h5_seurat <- function(h5_file,
   rownames(cell_meta) <- cell_meta$barcodes
   feat_meta <- read_h5_feature_meta(h5_file,
                                     target = target)
-  rownames(feat_meta) <- feat_meta[[feature_names]]
+  rownames(feat_meta) <- make.unique(feat_meta[[feature_names]])
 
   cite_10x <- FALSE
   cite_injected <- FALSE
@@ -263,7 +263,7 @@ read_h5_seurat <- function(h5_file,
     cite_mat <- read_h5_dgCMatrix(h5_file, "ADT", feature_names = "id")
     colnames(cite_mat) <- cell_meta$barcodes
     cite_feat <- read_h5_feature_meta(h5_file, target = "ADT")
-    rownames(cite_feat) <- cite_feat[["id"]]
+    rownames(cite_feat) <- make.unique(cite_feat[["id"]])
   }
     
   so <- Seurat::CreateSeuratObject(counts = mat,
