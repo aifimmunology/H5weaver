@@ -204,6 +204,10 @@ read_h5_feature_meta <- function(h5_file,
 #'
 #' @return a Seurat Class object
 #' @export
+#' @examples
+#' h5_fpath <- system.file('testdata/cite_sample1.h5', package = "H5weaver")
+#' so <- read_h5_seurat(h5_fpath)
+#' # so
 read_h5_seurat <- function(h5_file,
                            target = "matrix",
                            feature_names = "name",
@@ -228,32 +232,48 @@ read_h5_seurat <- function(h5_file,
   rownames(cell_meta) <- cell_meta$barcodes
 
   rownames(cell_meta) <- cell_meta$barcodes
-
   feat_meta <- read_h5_feature_meta(h5_file,
                                     target = target)
+  rownames(feat_meta) <- make.unique(feat_meta[[feature_names]])
 
-  cite <- FALSE
+  cite_10x <- FALSE
+  cite_injected <- FALSE
 
-  # Check for CITE-seq data
+  # Check for cellranger CITE-seq data
   if("feature_type" %in% names(feat_meta)) {
     if("Antibody Capture" %in% feat_meta$feature_type) {
-      cite <- TRUE
+      cite_10x <- TRUE
     }
   }
 
-  if(cite) {
+  if(cite_10x) {
     cite_feat <- feat_meta[feat_meta$feature_type == "Antibody Capture",]
     feat_meta <- feat_meta[feat_meta$feature_type != "Antibody Capture",]
 
     cite_mat <- mat[cite_feat$id,]
     mat <- mat[feat_meta$id,]
   }
+    
+  # Check for injected CITE-seq data
+  if("ADT" %in% h5ls(h5_file)$name) {
+    cite_injected <- TRUE
+  }
 
+  if(cite_injected) {
+    cite_mat <- read_h5_dgCMatrix(h5_file, "ADT", feature_names = "id")
+    colnames(cite_mat) <- cell_meta$barcodes
+    cite_feat <- read_h5_feature_meta(h5_file, target = "ADT")
+    rownames(cite_feat) <- make.unique(cite_feat[["id"]])
+  }
+    
   so <- Seurat::CreateSeuratObject(counts = mat,
                                    meta.data = cell_meta,
                                    ...)
-  if(cite) {
+  so[["RNA"]] <- Seurat::AddMetaData( so[["RNA"]], feat_meta)
+      
+  if(cite_10x|cite_injected) {
     so[["ADT"]] <- Seurat::CreateAssayObject(counts = cite_mat)
+    so[["ADT"]] <- Seurat::AddMetaData( so[["ADT"]], cite_feat)
   }
 
   so
@@ -272,6 +292,10 @@ read_h5_seurat <- function(h5_file,
 #'
 #' @return a SingleCellExperiment Class object
 #' @export
+#' @examples
+#' h5_fpath <- system.file('testdata/cite_sample1.h5', package = "H5weaver")
+#' test_sce <- read_h5_sce(h5_fpath)
+#' # test_sce
 read_h5_sce <- function(h5_file,
                         target = "matrix",
                         feature_names = "name",
@@ -294,21 +318,33 @@ read_h5_sce <- function(h5_file,
   feat_meta <- read_h5_feature_meta(h5_file,
                                     target = target)
 
-  cite <- FALSE
+  cite_10x <- FALSE
+  cite_injected <- FALSE
 
   # Check for CITE-seq data
   if("feature_type" %in% names(feat_meta)) {
     if("Antibody Capture" %in% feat_meta$feature_type) {
-      cite <- TRUE
+      cite_10x <- TRUE
     }
   }
 
-  if(cite) {
+  if(cite_10x) {
     cite_feat <- feat_meta[feat_meta$feature_type == "Antibody Capture",]
     feat_meta <- feat_meta[feat_meta$feature_type != "Antibody Capture",]
 
     cite_mat <- mat[cite_feat$id,]
     mat <- mat[feat_meta$id,]
+  }
+    
+  # Check for injected CITE-seq data
+  if("ADT" %in% h5ls(h5_file)$name) {
+    cite_injected <- TRUE
+  }
+
+  if(cite_injected) {
+    cite_mat <- read_h5_dgCMatrix(h5_file, 'ADT', feature_names = 'id')
+    cite_feat <- read_h5_feature_meta(h5_file, 'ADT')
+    colnames(cite_mat) <- cell_meta$barcodes
   }
 
   sce <- SingleCellExperiment::SingleCellExperiment(
@@ -318,9 +354,10 @@ read_h5_sce <- function(h5_file,
     ...
   )
 
-  if(cite) {
+  if(cite_10x|cite_injected) {
     cite_se <- SummarizedExperiment::SummarizedExperiment(
-      assays = list(counts = cite_mat)
+      assays = list(counts = cite_mat),
+      rowData = cite_feat
     )
     SingleCellExperiment::altExp(sce, "ADT") <- cite_se
   }
