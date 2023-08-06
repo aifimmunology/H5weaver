@@ -1,7 +1,7 @@
 ---
-title: "Add 5 Prime Contig Data to H5 Metadata"
+title: "Add 5 Prime Data to H5 Metadata"
 author:
- - Qiuyu Gong ; Lucas Graybuck
+ - Qiuyu Gong 
 date: "`r format(Sys.time(), '%Y-%m-%d')`"
 output:
   html_document:
@@ -11,6 +11,8 @@ output:
 params:
   in_h5: NULL
   in_contig: NULL
+  in_airr: NULL
+  in_fasta: NULL
   in_category: NULL
   in_batch: NULL
   out_dir: NULL
@@ -71,6 +73,8 @@ stm(paste0("Please provide input h5"))
   in_h5 <- params$in_h5  
   in_contig <- params$in_contig
   in_category <- params$in_category  
+  in_airr <- params$in_airr  
+  in_fasta <- params$in_fasta  
   out_dir <- params$out_dir
   in_batch<- params$in_batch
   sample_id<- params$sample_id
@@ -81,12 +85,15 @@ stm(paste0("Please provide input h5"))
 
 stm(paste0("IN H5    : ", in_h5))
 stm(paste0("IN Contig    : ", in_contig))
-stm(paste0("IN Category   : ", in_category))
+stm(paste0("IN Airr   : ", in_airr))
+stm(paste0("IN Contig    : ", in_contig))
+stm(paste0("IN Fasta   : ", in_fasta))
 stm(paste0("OUT Dir        : ", out_dir))
 stm(paste0("Batch ID        : ", in_batch))
-
 print(paste0("IN H5        : ", in_h5))
 print(paste0("IN Contig    : ", in_contig))
+print(paste0("IN Airr    : ", in_airr))
+print(paste0("IN Fasta    : ", in_fasta))
 print(paste0("IN Category       : ", in_category))
 print(paste0("OUT Dir         : ", out_dir))
 print(paste0("Batch ID        : ", in_batch))
@@ -135,10 +142,18 @@ stm(paste0("Loading HDF5 from ", in_h5))
 h5_list <- h5dump(in_h5)
 ```
 
-#### Load Contig Files
-```{r Load Contig}
+#### Load Contig/Airr/Fasta Files
+```{r Load Contig/Airr/Fasta}
+
 stm(paste0("Loading Contig from ", in_contig))
 contig<-read.csv(in_contig)
+
+stm(paste0("Loading Airr from ", in_airr))
+airr<-read.csv(in_airr)
+
+stm(paste0("Loading Fasta from ", in_fasta))
+fasta<-read.csv(in_fasta,header=FALSE)
+
 ```
 
 #### Regroup Clonotype
@@ -215,7 +230,13 @@ cellUUId$Well_ID<-cellUUId$well_id
 new_contig<-left_join(new_contig,cellUUId,by=c("Well_ID","barcode"))
 new_contig$barcode<-new_contig$cell_uuid
 new_contig$contig_id<-paste0(new_contig$barcode,stri_sub(new_contig$contig_id,-9))
-new_contig<-new_contig[1:35]
+meta_info<-new_contig[c('original_barcodes','well_id',
+             'contig_id','raw_clonotype_id','raw_consensus_id')]
+meta_info<-new_contig[c('original_barcodes','barcode','well_id',
+             'contig_id','raw_clonotype_id','raw_consensus_id')]
+meta_info$cell_id<-paste0(meta_info$original_barcodes,'-1')
+meta_info$fasta_key<-paste0('>',meta_info$cell_id,str_sub(meta_info$contig_id,33,44),"-",meta_info$well_id)
+meta_info$fasta_value<-paste0('>',meta_info$barcode,str_sub(meta_info$contig_id,33,44),"-",meta_info$well_id)
 }
 ```
 
@@ -223,7 +244,22 @@ new_contig<-new_contig[1:35]
 ```{r write_out_contig}
 if ("Well_ID" %in% colnames(contig)){
 
-write.csv(new_contig,paste0(out_dir,"/",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+###Contig
+
+new_contig<-new_contig[1:35]
+write.csv(new_contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+
+###Airr
+airr<-left_join(airr,meta_info)
+airr$cell_id<-airr$barcode
+airr$clone_id<-airr$raw_clonotype_id
+airr$sequence_id<-airr$contig_id
+write.table(airr[1:33], file=paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_airr_rearrangement_",in_category,".tsv"), quote=FALSE, sep='\t', row.names = F)
+###Fasta
+replacement_dict <- setNames( meta_info$fasta_value,meta_info$fasta_key)
+v_new <- sapply(pull(fasta), function(x) if (x %in% names(replacement_dict)) str_sub(replacement_dict[[x]][1],1,42) else x)
+names(v_new)<-NULL
+write(v_new, paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".fasta"), sep = "\n", ncolumns = 1)
 }
 ```
 
@@ -275,7 +311,7 @@ colnames(reformated_contig_df)[1]<-"barcodes"
 reformated_contig_df<-left_join(cellUUId, reformated_contig_df, by=c("barcodes"))
 reformated_contig_df<-reformated_contig_df %>% dplyr::select(contains(in_category))
 cols<-colnames(reformated_contig_df)
-write.csv(contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",sample_id,"_filtered_contig_",in_category,".csv"),row.names=FALSE)
+#write.csv(contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",sample_id,"_filtered_contig_",in_category,".csv"),row.names=FALSE)
 
 }
 
