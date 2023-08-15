@@ -253,6 +253,7 @@ write.csv(new_contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUU
 
 ###Airr
 airr<-left_join(airr,meta_info,by=c('sequence_id'))
+airr$cell_id.x<-NULL
 airr$cell_id<-airr$barcode
 airr$clone_id<-airr$raw_clonotype_id
 airr$sequence_id<-airr$contig_id
