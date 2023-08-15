@@ -237,6 +237,8 @@ meta_info<-new_contig[c('original_barcodes','barcode','well_id',
 meta_info$cell_id<-paste0(meta_info$original_barcodes,'-1')
 meta_info$fasta_key<-paste0('>',meta_info$cell_id,str_sub(meta_info$contig_id,33,44),"-",meta_info$well_id)
 meta_info$fasta_value<-paste0('>',meta_info$barcode,str_sub(meta_info$contig_id,33,44),"-",meta_info$well_id)
+meta_info$sequence_id<-paste0(meta_info$original_barcodes,"-1",str_sub(meta_info$contig_id,33,44))
+meta_info<-unique(meta_info)
 }
 ```
 
@@ -250,11 +252,11 @@ new_contig<-new_contig[1:35]
 write.csv(new_contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
 
 ###Airr
-airr<-left_join(airr,meta_info)
+airr<-left_join(airr,meta_info,by=c('sequence_id'))
 airr$cell_id<-airr$barcode
 airr$clone_id<-airr$raw_clonotype_id
 airr$sequence_id<-airr$contig_id
-write.table(airr[1:33], file=paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_airr_rearrangement_",in_category,".tsv"), quote=FALSE, sep='\t', row.names = F)
+write.table(airr[c(42,1:33)], file=paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_airr_rearrangement_",in_category,".tsv"), quote=FALSE, sep='\t', row.names = F)
 ###Fasta
 replacement_dict <- setNames( meta_info$fasta_value,meta_info$fasta_key)
 v_new <- sapply(pull(fasta), function(x) if (x %in% names(replacement_dict)) str_sub(replacement_dict[[x]][1],1,42) else x)
