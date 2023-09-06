@@ -252,7 +252,7 @@ new_contig<-new_contig[1:35]
 write.csv(new_contig,paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_filtered_contig_",in_category,".csv"),row.names=FALSE)
 
 ###Airr
-airr<-left_join(airr,meta_info,by=c('sequence_id'))
+airr<-left_join(airr,meta_info,by=c('sequence_id','Well_ID'="well_id"))
 airr$cell_id.x<-NULL
 airr$cell_id<-airr$barcode
 airr$clone_id<-airr$raw_clonotype_id
