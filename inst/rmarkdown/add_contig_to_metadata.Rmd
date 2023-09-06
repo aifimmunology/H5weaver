@@ -257,7 +257,7 @@ airr$cell_id.x<-NULL
 airr$cell_id<-airr$barcode
 airr$clone_id<-airr$raw_clonotype_id
 airr$sequence_id<-airr$contig_id
-write.table(airr[c(42,1:33)], file=paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_airr_rearrangement_",in_category,".tsv"), quote=FALSE, sep='\t', row.names = F)
+write.table(airr[c(41,1:33)], file=paste0(out_dir,"/",unique(so[[]]$pool_id),"_",unique(cellUUId$pbmc_sample_id),"_airr_rearrangement_",in_category,".tsv"), quote=FALSE, sep='\t', row.names = F)
 ###Fasta
 replacement_dict <- setNames( meta_info$fasta_value,meta_info$fasta_key)
 v_new <- sapply(pull(fasta), function(x) if (x %in% names(replacement_dict)) str_sub(replacement_dict[[x]][1],1,42) else x)
