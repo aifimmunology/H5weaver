@@ -53,23 +53,23 @@ read_h5_dgCMatrix <- function(h5_file,
   }
 
   if(index1) {
-    mat <- Matrix::sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
-                                i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")) + 1,
-                                p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
+    mat <- Matrix::sparseMatrix(x = read_h5_vector(h5_handle, paste0("/",target,"/data")),
+                                i = read_h5_vector(h5_handle, paste0("/",target,"/indices")) + 1,
+                                p = read_h5_vector(h5_handle, paste0("/",target,"/indptr")),
                                 index1 = index1,
-                                dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
-                                dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                                as.vector(rhdf5::h5read(h5_handle, colname_target))
+                                dims = read_h5_vector(h5_handle, paste0("/",target,"/shape")),
+                                dimnames = list(read_h5_vector(h5_handle, paste0("/",target,"/features/",feature_names)),
+                                                read_h5_vector(h5_handle, colname_target)
                                 )
     )
   } else {
-    mat <- Matrix::sparseMatrix(x = rhdf5::h5read(h5_handle, paste0("/",target,"/data")),
-                                i = rhdf5::h5read(h5_handle, paste0("/",target,"/indices")),
-                                p = rhdf5::h5read(h5_handle, paste0("/",target,"/indptr")),
+    mat <- Matrix::sparseMatrix(x = read_h5_vector(h5_handle, paste0("/",target,"/data")),
+                                i = read_h5_vector(h5_handle, paste0("/",target,"/indices")),
+                                p = read_h5_vector(h5_handle, paste0("/",target,"/indptr")),
                                 index1 = index1,
-                                dims = rhdf5::h5read(h5_handle, paste0("/",target,"/shape")),
-                                dimnames = list(as.vector(rhdf5::h5read(h5_handle, paste0("/",target,"/features/",feature_names))),
-                                                as.vector(rhdf5::h5read(h5_handle, colname_target))
+                                dims = read_h5_vector(h5_handle, paste0("/",target,"/shape")),
+                                dimnames = list(read_h5_vector(h5_handle, paste0("/",target,"/features/",feature_names)),
+                                                read_h5_vector(rhdf5::h5read(h5_handle, colname_target))
                                 )
     )
   }
@@ -490,4 +490,16 @@ h5dims <- function(h5_file,
   d <- unlist(strsplit(d, split = ","))
 
   as.numeric(d)
+}
+
+#' Read 1d arrays from h5 files as vectors
+#' 
+#' This function wraps `h5read()` with `as.vector()` so that 1d arrays are 
+#' converted to vectors so they behave as expected in R.
+#' 
+#' @return a vector object
+#' @export
+#' 
+read_h5_vector <- function(...) {
+    as.vector(rhdf5::h5read(...))
 }
