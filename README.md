@@ -30,20 +30,7 @@ BiocManager::install("rhdf5")
 
 This package can be installed from Github using the `devtools` package.
 
-You may first need to register your GitHub PAT, as this is a private repository.
-
-Get access token from github:
-- Navigate to  [Settings / Developer settings](https://github.com/settings/apps)
-- Click [Personal access tokens](https://github.com/settings/tokens)
-- Generate new token (or re-generate if you have an existing one but you didn't copy it to your password manager 😒).
-- Under **Select scopes**
-- Give the token **repo** scope
-
-from github:
-> Make sure to copy your new personal access token now. You won’t be able to see it again!
-
 ```
-Sys.setenv(GITHUB_PAT = "your-access-token-here")
 devtools::install_github("aifimmunology/H5weaver")
 ```
 
@@ -156,6 +143,29 @@ To run tests for this package, download the repository from Github and run `devt
 Extra-stringent, CRAN-level package testing can be performed using `devtools::check()` in R.
 
 ## Style and Standards
+
+
+<a id="legal_info"></a>
+
+# Legal Information
+
+<a id="license"></a>
+
+## License
+
+The license for this package is available on Github in the file LICENSE.txt in this repository.
+
+<a id="support"></a>
+
+## Level of Support
+
+We are not currently supporting this code, but simply releasing it to the community AS IS but are not able to provide any guarantees of support. The community is welcome to submit issues, but you should not expect an active response.
+
+<a id="contrib"></a>
+
+## Contribution Agreement
+
+If you contribute code to this repository through pull requests or other mechanisms, you are subject to the Allen Institute Contribution Agreement, which is available in the file CONTRIBUTING.md in this repository.
 
 This package aims to conform to the tidyverse style guide:  
 https://style.tidyverse.org/index.html
