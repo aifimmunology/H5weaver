@@ -7,7 +7,7 @@
 read_h5ad_feature_meta(h5ad_file)
 }
 \arguments{
-\item{h5_file}{the path to an .h5 file in 10x Genomics format}
+\item{h5ad_file}{the path to an .h5ad file}
 }
 \value{
 a data.frame containing all feature metadata found in /var

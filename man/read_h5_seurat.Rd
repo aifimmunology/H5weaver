@@ -13,7 +13,7 @@ read_h5_seurat(h5_file, target = "matrix", feature_names = "name", ...)
 
 \item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "name".}
 
-\item{...}{Additional parameters passed to \code{\link{Seurat::createSeuratObject}}}
+\item{...}{Additional parameters passed to \code{\link[SeuratObject]{createSeuratObject}}}
 }
 \value{
 a Seurat Class object
@@ -23,4 +23,9 @@ By default, matrix data will be stored in the "RNA" assay.
 }
 \details{
 CITE-seq data will be automatically detected and stored in the "ADT" assay.
+}
+\examples{
+h5_fpath <- system.file('testdata/cite_sample1.h5', package = "H5weaver")
+so <- read_h5_seurat(h5_fpath)
+# so
 }

@@ -73,6 +73,7 @@ h5_attr_list <- function(library_ids = NULL) {
 #' @param h5_list a list object, e.g. a list created by rhdf5::h5dump()
 #' @param h5_file a character object specifying the location of a .h5 file to write to.
 #' @param overwrite a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.
+#' @param addon a logincal value specifying whether to add data to an existing file. Default is FALSE.
 #' @param h5_handle an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.
 #' @param h5_target a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.
 #' @param h5_attributes a list of attributes to add to an .h5 file to try to imitate 10x Genomics outputs. If NULL (default), will be skipped. "tenx" uses in-built data from 'h5_attr_list()'.
@@ -445,12 +446,12 @@ create_ext_h5_float <- function(h5_handle,
 
 #' Generate an empty HDF5 container to store RNA-seq count data in 10x format
 #'
-#' @param h5_file
-#' @param cell_barcode_length 18
-#' @param data_type integer
-#' @param data_bits 16
-#' @param indices_bits 16
-#' @param indptr_bits 32
+#' @param h5_file A character object specifying the location to write the HDF5 file. Required.
+#' @param cell_barcode_length Integer specifying the cell barcode length. Default is 15.
+#' @param data_type String specifying the type of the data to be written to the matrix. Default is "integer".
+#' @param data_bits Integer specifying the bits to use to store matrix data. Default is 16.
+#' @param indices_bits Integer specifying the bits to use to store indices. Default is 16.
+#' @param indptr_bits Integer specifying the bits to use to store index pointers. Default is 32.
 #'
 #' @return
 #'

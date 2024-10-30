@@ -14,18 +14,17 @@ write_10x_h5_container(
 )
 }
 \arguments{
-\item{cell_barcode_length}{18}
+\item{h5_file}{A character object specifying the location to write the HDF5 file. Required.}
 
-\item{data_type}{integer}
+\item{cell_barcode_length}{Integer specifying the cell barcode length. Default is 15.}
 
-\item{data_bits}{16}
+\item{data_type}{String specifying the type of the data to be written to the matrix. Default is "integer".}
 
-\item{indices_bits}{16}
+\item{data_bits}{Integer specifying the bits to use to store matrix data. Default is 16.}
 
-\item{indptr_bits}{32}
-}
-\value{
+\item{indices_bits}{Integer specifying the bits to use to store indices. Default is 16.}
 
+\item{indptr_bits}{Integer specifying the bits to use to store index pointers. Default is 32.}
 }
 \description{
 Generate an empty HDF5 container to store RNA-seq count data in 10x format

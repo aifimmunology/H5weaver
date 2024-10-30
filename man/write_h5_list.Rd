@@ -22,6 +22,8 @@ write_h5_list(
 
 \item{overwrite}{a logical value specifying whether or not to overwrite an existing .h5 file. Default is FALSE.}
 
+\item{addon}{a logincal value specifying whether to add data to an existing file. Default is FALSE.}
+
 \item{h5_handle}{an existing h5_handle created by H5Fopen(). Used for recursion. The default (NULL) should usually be used.}
 
 \item{h5_target}{a base location within the HDF5 file to write to. Mainly used for recursion. The default ("/") should usually be used.}

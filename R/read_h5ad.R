@@ -58,7 +58,7 @@ read_h5ad_cell_meta <- function(h5ad_file) {
 
 #' Read .h5ad Feature Metadata
 #'
-#' @param h5_file the path to an .h5 file in 10x Genomics format
+#' @param h5ad_file the path to an .h5ad file
 #'
 #' @return a data.frame containing all feature metadata found in /var
 #' @export

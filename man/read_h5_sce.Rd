@@ -13,7 +13,7 @@ read_h5_sce(h5_file, target = "matrix", feature_names = "name", ...)
 
 \item{feature_names}{a character object specifying whether to use "id" or "name" for row.names. Default is "name".}
 
-\item{...}{Additional parameters passed to \code{\link{SingleCellExperiment::SingleCellExperiment()}}}
+\item{...}{Additional parameters passed to \code{\link[SingleCellExperiment]{SingleCellExperiment}}}
 }
 \value{
 a SingleCellExperiment Class object
@@ -23,4 +23,9 @@ By default, matrix data will be stored in the "counts" assay.
 }
 \details{
 CITE-seq data will be automatically detected and stored in the altExp called "ADT"
+}
+\examples{
+h5_fpath <- system.file('testdata/cite_sample1.h5', package = "H5weaver")
+test_sce <- read_h5_sce(h5_fpath)
+# test_sce
 }

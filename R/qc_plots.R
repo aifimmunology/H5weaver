@@ -419,7 +419,7 @@ qc_cutoff_barplot <- function(meta,
 #' @param meta A data.frame containing metadata
 #' @param category_x A character object specifying the metadata to use for grouping on the x-axis
 #' @param name_x A character object specifying a name to display on the x-axis
-#' @param category_x A character object specifying the metadata to use for splitting in the y-direction
+#' @param category_y A character object specifying the metadata to use for splitting in the y-direction
 #' @param category_name A character object specifying a name to display for the colors
 #' @param colorset_y A colorset to use as fills for category_y. Currently supported: "rainbow" or "varibow". Default is "varibow"
 #' @param name_y A character object specifying a name for the y-axis.
@@ -518,7 +518,7 @@ qc_stacked_barplot <- function(meta,
 #' @param meta A data.frame containing metadata
 #' @param category_x A character object specifying the metadata to use for grouping on the x-axis
 #' @param name_x A character object specifying a name to display on the x-axis
-#' @param category_x A character object specifying the metadata to use for splitting in the y-direction
+#' @param category_y A character object specifying the metadata to use for splitting in the y-direction
 #' @param category_name A character object specifying a name to display for the colors
 #' @param colorset_y A colorset to use as fills for category_y. Currently supported: "rainbow" or "varibow". Default is "varibow"
 #' @param name_y A character object specifying a name for the y-axis.

@@ -200,7 +200,7 @@ read_h5_feature_meta <- function(h5_file,
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
 #' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "name".
-#' @param ... Additional parameters passed to \code{\link{Seurat::createSeuratObject}}
+#' @param ... Additional parameters passed to \code{\link[SeuratObject]{createSeuratObject}}
 #'
 #' @return a Seurat Class object
 #' @export
@@ -266,14 +266,15 @@ read_h5_seurat <- function(h5_file,
     rownames(cite_feat) <- make.unique(cite_feat[["id"]])
   }
     
-  so <- Seurat::CreateSeuratObject(counts = mat,
-                                   meta.data = cell_meta,
-                                   ...)
-  so[["RNA"]] <- Seurat::AddMetaData( so[["RNA"]], feat_meta)
+  so <- SeuratObject::CreateSeuratObject(
+      counts = mat,
+      meta.data = cell_meta,
+      ...)
+  so[["RNA"]] <- SeuratObject::AddMetaData( so[["RNA"]], feat_meta)
       
   if(cite_10x|cite_injected) {
-    so[["ADT"]] <- Seurat::CreateAssayObject(counts = cite_mat)
-    so[["ADT"]] <- Seurat::AddMetaData( so[["ADT"]], cite_feat)
+    so[["ADT"]] <- SeuratObject::CreateAssayObject(counts = cite_mat)
+    so[["ADT"]] <- SeuratObject::AddMetaData( so[["ADT"]], cite_feat)
   }
 
   so
@@ -288,7 +289,7 @@ read_h5_seurat <- function(h5_file,
 #' @param h5_file the path to an .h5 file in 10x Genomics format
 #' @param target A matrix object in the .h5 file with a /features/ sub-group. Default is "matrix".
 #' @param feature_names a character object specifying whether to use "id" or "name" for row.names. Default is "name".
-#' @param ... Additional parameters passed to \code{\link{SingleCellExperiment::SingleCellExperiment()}}
+#' @param ... Additional parameters passed to \code{\link[SingleCellExperiment]{SingleCellExperiment}}
 #'
 #' @return a SingleCellExperiment Class object
 #' @export
@@ -497,6 +498,8 @@ h5dims <- function(h5_file,
 #' This function wraps `h5read()` with `as.vector()` so that 1d arrays are 
 #' converted to vectors so they behave as expected in R.
 #' 
+#' @param ... Passes arguments to `rhdf5::h5read()`
+#'
 #' @return a vector object
 #' @export
 #' 

@@ -18,9 +18,11 @@ qc_aligned_barplot(
 \arguments{
 \item{meta}{A data.frame containing metadata}
 
-\item{category_x}{A character object specifying the metadata to use for splitting in the y-direction}
+\item{category_x}{A character object specifying the metadata to use for grouping on the x-axis}
 
 \item{name_x}{A character object specifying a name to display on the x-axis}
+
+\item{category_y}{A character object specifying the metadata to use for splitting in the y-direction}
 
 \item{category_name}{A character object specifying a name to display for the colors}
 
