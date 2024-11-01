@@ -43,8 +43,7 @@ read_h5_dgCMatrix <- function(h5_file,
 
   feature_names <- match.arg(arg = feature_names,
                              choices = c("id","name"))
-
-  h5_handle <- rhdf5::H5Fopen(h5_file)
+  h5_handle <- rhdf5::H5Fopen(h5_file, flags="H5F_ACC_RDONLY")
 
   if(sample_names == "barcodes") {
     colname_target <- paste0("/", target, "/barcodes")
