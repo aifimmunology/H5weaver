@@ -264,7 +264,8 @@ read_h5_seurat <- function(h5_file,
     cite_feat <- read_h5_feature_meta(h5_file, target = "ADT")
     rownames(cite_feat) <- make.unique(cite_feat[["id"]])
   }
-    
+  unique_rownames <- make.unique(rownames(mat))
+  rownames(mat) <- unique_rownames
   so <- Seurat::CreateSeuratObject(counts = mat,
                                    meta.data = cell_meta,
                                    ...)
