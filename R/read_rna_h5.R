@@ -249,10 +249,13 @@ read_h5_seurat <- function(h5_file,
     cite_feat <- feat_meta[feat_meta$feature_type == "Antibody Capture",]
     feat_meta <- feat_meta[feat_meta$feature_type != "Antibody Capture",]
 
-    cite_mat <- mat[cite_feat$id,]
-    mat <- mat[feat_meta$id,]
+    cite_ids <- intersect(cite_feat$id, rownames(mat))
+    feat_ids <- intersect(feat_meta$id, rownames(mat))
+
+    cite_mat <- mat[cite_ids, ]
+    mat <- mat[feat_ids, ]
   }
-    
+
   # Check for injected CITE-seq data
   if("ADT" %in% h5ls(h5_file)$name) {
     cite_injected <- TRUE
@@ -264,12 +267,12 @@ read_h5_seurat <- function(h5_file,
     cite_feat <- read_h5_feature_meta(h5_file, target = "ADT")
     rownames(cite_feat) <- make.unique(cite_feat[["id"]])
   }
-    
+
   so <- Seurat::CreateSeuratObject(counts = mat,
                                    meta.data = cell_meta,
                                    ...)
   so[["RNA"]] <- Seurat::AddMetaData( so[["RNA"]], feat_meta)
-      
+
   if(cite_10x|cite_injected) {
     so[["ADT"]] <- Seurat::CreateAssayObject(counts = cite_mat)
     so[["ADT"]] <- Seurat::AddMetaData( so[["ADT"]], cite_feat)
@@ -334,7 +337,7 @@ read_h5_sce <- function(h5_file,
     cite_mat <- mat[cite_feat$id,]
     mat <- mat[feat_meta$id,]
   }
-    
+
   # Check for injected CITE-seq data
   if("ADT" %in% h5ls(h5_file)$name) {
     cite_injected <- TRUE
@@ -492,13 +495,13 @@ h5dims <- function(h5_file,
 }
 
 #' Read 1d arrays from h5 files as vectors
-#' 
-#' This function wraps `h5read()` with `as.vector()` so that 1d arrays are 
+#'
+#' This function wraps `h5read()` with `as.vector()` so that 1d arrays are
 #' converted to vectors so they behave as expected in R.
-#' 
+#'
 #' @return a vector object
 #' @export
-#' 
+#'
 read_h5_vector <- function(...) {
     as.vector(rhdf5::h5read(...))
 }
